@@ -1,0 +1,351 @@
+"""
+API views (ViewSets) for the Car Parts Marketplace.
+
+Each ViewSet maps to a standard REST resource. Permissions are kept simple for
+the MVP: most endpoints are public-read, and write operations require login.
+"""
+
+from django.contrib.auth import authenticate, get_user_model
+from rest_framework import viewsets, status, permissions, filters
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .models import (
+    Category, Product, ProductImage, Review,
+    Cart, CartItem, Order, OrderItem, SellerProfile,
+)
+from .serializers import (
+    UserSerializer, RegisterSerializer, LoginSerializer,
+    CategorySerializer,
+    ProductListSerializer, ProductDetailSerializer, ProductWriteSerializer,
+    ProductImageSerializer, ReviewSerializer,
+    CartSerializer, CartItemSerializer,
+    OrderSerializer,
+    SellerProfileSerializer,
+)
+
+User = get_user_model()
+
+
+# ---------------------------------------------------------------------------
+# Permissions helpers
+# ---------------------------------------------------------------------------
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    """Allow owners to edit, everyone else read-only."""
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        if hasattr(obj, "seller"):
+            return obj.seller == request.user
+        if hasattr(obj, "user"):
+            return obj.user == request.user
+        return False
+
+
+class IsSeller(permissions.BasePermission):
+    """Only allow users with is_seller=True."""
+
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_seller
+
+
+# ---------------------------------------------------------------------------
+# Auth views
+# ---------------------------------------------------------------------------
+class AuthViewSet(viewsets.ViewSet):
+    """Handle user registration and login."""
+    permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=["post"])
+    def register(self, request):
+        """Register a new user and return an auth token."""
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        token, _ = Token.objects.get_or_create(user=user)
+
+        # Create seller profile if registering as seller
+        if user.is_seller:
+            SellerProfile.objects.get_or_create(
+                user=user,
+                defaults={"store_name": f"{user.username}'s Store"},
+            )
+
+        return Response(
+            {"token": token.key, "user": UserSerializer(user).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=["post"])
+    def login(self, request):
+        """Authenticate and return a token."""
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = authenticate(
+            username=serializer.validated_data["username"],
+            password=serializer.validated_data["password"],
+        )
+        if not user:
+            return Response(
+                {"error": "Invalid credentials"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key, "user": UserSerializer(user).data})
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        """Return the current authenticated user."""
+        return Response(UserSerializer(request.user).data)
+
+
+# ---------------------------------------------------------------------------
+# Category
+# ---------------------------------------------------------------------------
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """List and retrieve product categories."""
+    queryset = Category.objects.filter(parent__isnull=True)  # Top-level only
+    serializer_class = CategorySerializer
+    lookup_field = "slug"
+
+
+# ---------------------------------------------------------------------------
+# Product
+# ---------------------------------------------------------------------------
+class ProductViewSet(viewsets.ModelViewSet):
+    """Full CRUD for products. Sellers can create/update their own listings."""
+    queryset = Product.objects.select_related("category", "seller").prefetch_related("images", "reviews")
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ["category__slug", "condition", "car_make", "car_model", "featured"]
+    search_fields = ["title", "description", "car_make", "car_model"]
+    ordering_fields = ["price", "created_at"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ProductListSerializer
+        if self.action in ("create", "update", "partial_update"):
+            return ProductWriteSerializer
+        return ProductDetailSerializer
+
+    def get_permissions(self):
+        if self.action in ("create",):
+            return [IsSeller()]
+        if self.action in ("update", "partial_update", "destroy"):
+            return [IsSeller(), IsOwnerOrReadOnly()]
+        return [permissions.AllowAny()]
+
+    def perform_create(self, serializer):
+        serializer.save(seller=self.request.user)
+
+    @action(detail=False, methods=["get"])
+    def featured(self, request):
+        """Return featured products for the home page."""
+        products = self.queryset.filter(featured=True)[:12]
+        serializer = ProductListSerializer(products, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def latest(self, request):
+        """Return the latest products."""
+        products = self.queryset.order_by("-created_at")[:12]
+        serializer = ProductListSerializer(products, many=True, context={"request": request})
+        return Response(serializer.data)
+
+
+# ---------------------------------------------------------------------------
+# Review
+# ---------------------------------------------------------------------------
+class ReviewViewSet(viewsets.ModelViewSet):
+    """Manage product reviews. Users can only create one review per product."""
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(product_id=self.kwargs.get("product_pk"))
+
+    def get_permissions(self):
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            product_id=self.kwargs["product_pk"],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Cart
+# ---------------------------------------------------------------------------
+class CartViewSet(viewsets.ViewSet):
+    """Manage the authenticated user's shopping cart."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        """Get the current user's cart with all items."""
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        return Response(CartSerializer(cart).data)
+
+    @action(detail=False, methods=["post"])
+    def add_item(self, request):
+        """Add a product to the cart (or increase quantity)."""
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        product_id = request.data.get("product_id")
+        quantity = int(request.data.get("quantity", 1))
+
+        item, created = CartItem.objects.get_or_create(
+            cart=cart, product_id=product_id, defaults={"quantity": quantity}
+        )
+        if not created:
+            item.quantity += quantity
+            item.save()
+
+        return Response(CartSerializer(cart).data)
+
+    @action(detail=False, methods=["post"])
+    def update_item(self, request):
+        """Update quantity of an item in the cart."""
+        cart = Cart.objects.get(user=request.user)
+        item_id = request.data.get("item_id")
+        quantity = int(request.data.get("quantity", 1))
+
+        try:
+            item = CartItem.objects.get(id=item_id, cart=cart)
+            if quantity <= 0:
+                item.delete()
+            else:
+                item.quantity = quantity
+                item.save()
+        except CartItem.DoesNotExist:
+            return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(CartSerializer(cart).data)
+
+    @action(detail=False, methods=["post"])
+    def remove_item(self, request):
+        """Remove an item from the cart entirely."""
+        cart = Cart.objects.get(user=request.user)
+        item_id = request.data.get("item_id")
+        CartItem.objects.filter(id=item_id, cart=cart).delete()
+        return Response(CartSerializer(cart).data)
+
+    @action(detail=False, methods=["post"])
+    def clear(self, request):
+        """Empty the cart."""
+        cart = Cart.objects.get(user=request.user)
+        cart.items.all().delete()
+        return Response(CartSerializer(cart).data)
+
+
+# ---------------------------------------------------------------------------
+# Order
+# ---------------------------------------------------------------------------
+class OrderViewSet(viewsets.ModelViewSet):
+    """Manage orders. Users see only their own orders."""
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Order.objects.all()
+        return Order.objects.filter(user=user)
+
+    def create(self, request, *args, **kwargs):
+        """Create an order from the current cart contents."""
+        try:
+            cart = Cart.objects.get(user=request.user)
+        except Cart.DoesNotExist:
+            return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
+
+        cart_items = cart.items.select_related("product").all()
+        if not cart_items.exists():
+            return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Create order
+        order = Order.objects.create(
+            user=request.user,
+            shipping_address=serializer.validated_data["shipping_address"],
+            phone=serializer.validated_data.get("phone", ""),
+            notes=serializer.validated_data.get("notes", ""),
+            total=cart.total,
+        )
+
+        # Copy cart items into order items
+        for ci in cart_items:
+            OrderItem.objects.create(
+                order=order,
+                product=ci.product,
+                product_title=ci.product.title,
+                price=ci.product.price,
+                quantity=ci.quantity,
+            )
+
+        # Clear the cart after order is placed
+        cart.items.all().delete()
+
+        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------------------
+# Seller Dashboard
+# ---------------------------------------------------------------------------
+class SellerDashboardViewSet(viewsets.ViewSet):
+    """Dashboard endpoints for sellers to manage their store."""
+    permission_classes = [IsSeller]
+
+    def list(self, request):
+        """Return seller's profile, product count, and recent orders."""
+        profile = SellerProfile.objects.filter(user=request.user).first()
+        products = Product.objects.filter(seller=request.user)
+        orders = OrderItem.objects.filter(product__seller=request.user).select_related("order")
+
+        return Response({
+            "profile": SellerProfileSerializer(profile).data if profile else None,
+            "product_count": products.count(),
+            "total_orders": orders.values("order").distinct().count(),
+            "recent_products": ProductListSerializer(
+                products[:5], many=True, context={"request": request}
+            ).data,
+        })
+
+    @action(detail=False, methods=["get"])
+    def products(self, request):
+        """List all products belonging to the seller."""
+        products = Product.objects.filter(seller=request.user)
+        serializer = ProductListSerializer(products, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def orders(self, request):
+        """List orders that contain the seller's products."""
+        order_ids = (
+            OrderItem.objects.filter(product__seller=request.user)
+            .values_list("order_id", flat=True)
+            .distinct()
+        )
+        orders = Order.objects.filter(id__in=order_ids)
+        return Response(OrderSerializer(orders, many=True).data)
+
+
+# ---------------------------------------------------------------------------
+# Admin endpoints
+# ---------------------------------------------------------------------------
+class AdminUserViewSet(viewsets.ModelViewSet):
+    """Admin-only: manage all users."""
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class AdminOrderViewSet(viewsets.ModelViewSet):
+    """Admin-only: manage all orders."""
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [permissions.IsAdminUser]

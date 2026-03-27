@@ -1,0 +1,70 @@
+/* ==========================================================================
+   Car Parts Marketplace – Global Styles
+   Tailwind CSS v4 with custom design tokens
+   ========================================================================== */
+
+@import "tailwindcss";
+
+/* --------------------------------------------------------------------------
+   Design Tokens (CSS custom properties)
+   -------------------------------------------------------------------------- */
+@theme {
+  --color-primary: #1E40AF;
+  --color-primary-light: #3B82F6;
+  --color-primary-dark: #1E3A8A;
+  --color-secondary: #64748B;
+  --color-accent: #0EA5E9;
+  --color-accent-light: #38BDF8;
+
+  --color-surface: #FFFFFF;
+  --color-background: #F8FAFC;
+  --color-background-alt: #F1F5F9;
+
+  --color-text: #1E293B;
+  --color-text-muted: #64748B;
+  --color-text-light: #94A3B8;
+
+  --color-border: #E2E8F0;
+  --color-border-dark: #CBD5E1;
+
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   Base styles
+   -------------------------------------------------------------------------- */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --------------------------------------------------------------------------
+   Smooth scrolling
+   -------------------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* --------------------------------------------------------------------------
+   Custom scrollbar (webkit)
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-background-alt);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-dark);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-secondary);
+}
