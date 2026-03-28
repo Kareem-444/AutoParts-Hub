@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,18 +31,15 @@ export default function RegisterPage() {
     }
 
     try {
-      const res = await auth.register(formData as any);
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res.user));
-      // Force refresh to update Navbar
-      window.location.href = formData.is_seller ? "/seller" : "/";
+      const user = await register(formData as any);
+      router.push(user.is_seller ? "/seller" : "/");
     } catch (err: any) {
       // Parse DRF multiple errors if possible
       let errorMsg = err.message || "Registration failed";
       try {
         const parsed = JSON.parse(err.message);
         const msgs = Object.values(parsed).flat();
-        if (msgs.length > 0) errorMsg = msgs.join(", ");
+        if (msgs.length > 0) errorMsg = (msgs as string[]).join(", ");
       } catch (e) {}
       setError(errorMsg);
     } finally {

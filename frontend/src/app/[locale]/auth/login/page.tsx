@@ -3,13 +3,14 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 function LoginContent() {
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { login } = useAuth();
 
   // Handle redirect after login
   const searchParams = useSearchParams();
@@ -22,11 +23,8 @@ function LoginContent() {
     setError(null);
 
     try {
-      const res = await auth.login(formData);
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(res.user));
-      // Force a hard refresh to update Navbar state, or just push
-      window.location.href = redirectPath;
+      await login(formData);
+      router.push(redirectPath);
     } catch (err: any) {
       setError(err.message || "Invalid credentials");
     } finally {

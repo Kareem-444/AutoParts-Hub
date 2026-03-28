@@ -6,6 +6,7 @@ import { products, reviews as reviewsApi } from "@/lib/api";
 import { Product, Review, Category } from "@/types";
 import StarRating from "@/components/StarRating";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { useTranslations } from "next-intl";
 
 export default function ProductDetailPage() {
@@ -25,6 +26,7 @@ export default function ProductDetailPage() {
 
   const t = useTranslations("Product");
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
 
   // Review form state
   const [rating, setRating] = useState(5);
@@ -52,7 +54,7 @@ export default function ProductDetailPage() {
   }, [id]);
 
   const handleAddToCart = async () => {
-    if (!localStorage.getItem("token")) {
+    if (!isAuthenticated) {
       router.push(`/auth/login?redirect=/products/${id}`);
       return;
     }
@@ -72,7 +74,7 @@ export default function ProductDetailPage() {
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!localStorage.getItem("token")) {
+    if (!isAuthenticated) {
       router.push(`/auth/login?redirect=/products/${id}`);
       return;
     }

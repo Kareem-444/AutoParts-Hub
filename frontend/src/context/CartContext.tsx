@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { cart as cartApi } from "@/lib/api";
 import { Cart } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 interface CartContextType {
   cart: Cart | null;
@@ -19,6 +20,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const refreshCart = useCallback(async () => {
     try {
@@ -33,13 +35,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+    if (authLoading) return;
+    if (isAuthenticated) {
       refreshCart();
     } else {
+      setCart(null);
       setLoading(false);
     }
-  }, [refreshCart]);
+  }, [isAuthenticated, authLoading, refreshCart]);
 
   const addItem = async (productId: number, quantity = 1) => {
     setLoading(true);

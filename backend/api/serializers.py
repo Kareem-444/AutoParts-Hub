@@ -211,3 +211,21 @@ class OrderSerializer(serializers.ModelSerializer):
             "notes", "items", "created_at", "updated_at",
         )
         read_only_fields = ("id", "total", "status", "created_at", "updated_at")
+
+
+# ---------------------------------------------------------------------------
+# Custom JWT (embeds role claims for Next.js middleware)
+# ---------------------------------------------------------------------------
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Add custom claims so Next.js Edge middleware can check roles."""
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["username"] = user.username
+        token["is_seller"] = user.is_seller
+        token["is_staff"] = user.is_staff
+        return token

@@ -1,11 +1,59 @@
 /**
  * API client for communicating with the Django backend.
+ * Uses JWT access tokens (in-memory) and HttpOnly refresh cookies.
+ * Automatically handles CSRF tokens for mutating requests.
  */
 
 import { User, Category, Product, Review, Cart, Order, SellerProfile } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+// ---------------------------------------------------------------------------
+// Access token bridge (set by AuthContext)
+// ---------------------------------------------------------------------------
+let _getAccessToken: (() => string | null) | null = null;
+
+export function setAccessTokenGetter(getter: () => string | null) {
+  _getAccessToken = getter;
+}
+
+// ---------------------------------------------------------------------------
+// CSRF token cache
+// ---------------------------------------------------------------------------
+let _csrfToken: string | null = null;
+
+async function getCSRFToken(): Promise<string> {
+  if (_csrfToken) return _csrfToken;
+  try {
+    const res = await fetch(`${API_BASE}/auth/csrf/`, { credentials: "include" });
+    const data = await res.json();
+    _csrfToken = data.csrfToken;
+    return _csrfToken!;
+  } catch {
+    return "";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Silent refresh
+// ---------------------------------------------------------------------------
+async function attemptRefresh(): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh/`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.access;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Core API client
+// ---------------------------------------------------------------------------
 interface RequestOptions extends RequestInit {
   headers?: Record<string, string>;
 }
@@ -18,20 +66,36 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     ...options.headers,
   };
 
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
-    if (token) {
-      headers["Authorization"] = `Token ${token}`;
+  // Attach access token if available
+  const token = _getAccessToken ? _getAccessToken() : null;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Attach CSRF token for mutating requests
+  const method = (options.method || "GET").toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const csrf = await getCSRFToken();
+    if (csrf) {
+      headers["X-CSRFToken"] = csrf;
     }
   }
 
-  const res = await fetch(url, { ...options, headers });
+  let res = await fetch(url, { ...options, headers, credentials: "include" });
 
-  if (res.status === 401 && typeof window !== "undefined") {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/auth/login";
-    throw new Error("Unauthorized");
+  // If 401, attempt silent refresh and retry once
+  if (res.status === 401) {
+    const newToken = await attemptRefresh();
+    if (newToken) {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      res = await fetch(url, { ...options, headers, credentials: "include" });
+    } else {
+      // Refresh also failed — redirect to login
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized");
+    }
   }
 
   if (!res.ok) {
@@ -50,8 +114,6 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
 
 // Auth
 export const auth = {
-  login: (data: Record<string, string>) => apiClient<{ token: string; user: User }>("/auth/login/", { method: "POST", body: JSON.stringify(data) }),
-  register: (data: Record<string, string>) => apiClient<{ token: string; user: User }>("/auth/register/", { method: "POST", body: JSON.stringify(data) }),
   me: () => apiClient<User>("/auth/me/"),
 };
 

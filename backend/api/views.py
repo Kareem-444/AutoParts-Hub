@@ -1,16 +1,10 @@
-"""
-API views (ViewSets) for the Car Parts Marketplace.
-
-Each ViewSet maps to a standard REST resource. Permissions are kept simple for
-the MVP: most endpoints are public-read, and write operations require login.
-"""
-
 from django.contrib.auth import authenticate, get_user_model
+from django.middleware.csrf import get_token
 from rest_framework import viewsets, status, permissions, filters
-from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import (
     Category, Product, ProductImage, Review,
@@ -24,9 +18,41 @@ from .serializers import (
     CartSerializer, CartItemSerializer,
     OrderSerializer,
     SellerProfileSerializer,
+    CustomTokenObtainPairSerializer,
 )
 
 User = get_user_model()
+
+# Cookie settings for the refresh token
+REFRESH_COOKIE_KEY = "refresh_token"
+REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
+REFRESH_COOKIE_SECURE = False  # Set True in production (HTTPS only)
+REFRESH_COOKIE_HTTPONLY = True
+REFRESH_COOKIE_SAMESITE = "Lax"
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str) -> Response:
+    """Set the refresh token as an HttpOnly cookie on the response."""
+    response.set_cookie(
+        key=REFRESH_COOKIE_KEY,
+        value=str(refresh_token),
+        max_age=REFRESH_COOKIE_MAX_AGE,
+        secure=REFRESH_COOKIE_SECURE,
+        httponly=REFRESH_COOKIE_HTTPONLY,
+        samesite=REFRESH_COOKIE_SAMESITE,
+        path="/",
+    )
+    return response
+
+
+def _clear_refresh_cookie(response: Response) -> Response:
+    """Delete the refresh token cookie."""
+    response.delete_cookie(
+        key=REFRESH_COOKIE_KEY,
+        path="/",
+        samesite=REFRESH_COOKIE_SAMESITE,
+    )
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -56,16 +82,15 @@ class IsSeller(permissions.BasePermission):
 # Auth views
 # ---------------------------------------------------------------------------
 class AuthViewSet(viewsets.ViewSet):
-    """Handle user registration and login."""
+    """JWT-based authentication with HttpOnly refresh-token cookies."""
     permission_classes = [permissions.AllowAny]
 
     @action(detail=False, methods=["post"])
     def register(self, request):
-        """Register a new user and return an auth token."""
+        """Register a new user, return access token + set refresh cookie."""
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        token, _ = Token.objects.get_or_create(user=user)
 
         # Create seller profile if registering as seller
         if user.is_seller:
@@ -74,14 +99,19 @@ class AuthViewSet(viewsets.ViewSet):
                 defaults={"store_name": f"{user.username}'s Store"},
             )
 
-        return Response(
-            {"token": token.key, "user": UserSerializer(user).data},
+        # Generate JWT pair with custom claims
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
+        access = str(refresh.access_token)
+
+        response = Response(
+            {"access": access, "user": UserSerializer(user).data},
             status=status.HTTP_201_CREATED,
         )
+        return _set_refresh_cookie(response, str(refresh))
 
     @action(detail=False, methods=["post"])
     def login(self, request):
-        """Authenticate and return a token."""
+        """Authenticate and return access token + set refresh cookie."""
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = authenticate(
@@ -93,8 +123,50 @@ class AuthViewSet(viewsets.ViewSet):
                 {"error": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key, "user": UserSerializer(user).data})
+
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
+        access = str(refresh.access_token)
+
+        response = Response({"access": access, "user": UserSerializer(user).data})
+        return _set_refresh_cookie(response, str(refresh))
+
+    @action(detail=False, methods=["post"])
+    def logout(self, request):
+        """Clear the refresh token cookie."""
+        response = Response({"detail": "Logged out"})
+        return _clear_refresh_cookie(response)
+
+    @action(detail=False, methods=["post"])
+    def refresh(self, request):
+        """Read refresh token from cookie, return new access + rotated refresh."""
+        raw_token = request.COOKIES.get(REFRESH_COOKIE_KEY)
+        if not raw_token:
+            return Response(
+                {"error": "No refresh token"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        try:
+            old_refresh = RefreshToken(raw_token)
+            # Get the user to include fresh data
+            user = User.objects.get(id=old_refresh["user_id"])
+            # Generate a new pair with custom claims
+            new_refresh = CustomTokenObtainPairSerializer.get_token(user)
+            access = str(new_refresh.access_token)
+
+            response = Response({"access": access, "user": UserSerializer(user).data})
+            return _set_refresh_cookie(response, str(new_refresh))
+        except Exception:
+            response = Response(
+                {"error": "Invalid or expired refresh token"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            return _clear_refresh_cookie(response)
+
+    @action(detail=False, methods=["get"])
+    def csrf(self, request):
+        """Return a CSRF token (also sets the csrftoken cookie)."""
+        token = get_token(request)
+        return Response({"csrfToken": token})
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def me(self, request):

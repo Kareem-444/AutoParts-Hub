@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { orders as ordersApi } from "@/lib/api";
@@ -17,14 +17,6 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-
-  useEffect(() => {
-    if (!loading && typeof window !== "undefined") {
-      if (!localStorage.getItem("token")) {
-        router.push("/auth/login?redirect=/checkout");
-      }
-    }
-  }, [loading, router]);
 
   const handleUpdateQuantity = async (itemId: number, newQty: number) => {
     if (newQty < 1) {
