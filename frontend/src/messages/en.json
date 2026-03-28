@@ -117,6 +117,7 @@
     "priceLowHigh": "Price: Low to High",
     "priceHighLow": "Price: High to Low",
     "showingResults": "Showing {start}-{end} of {total} results",
+    "results": "results",
     "resultsFor": "results for",
     "noResults": "No products found matching your criteria.",
     "previous": "Previous",

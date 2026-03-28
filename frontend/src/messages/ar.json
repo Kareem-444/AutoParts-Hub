@@ -117,6 +117,7 @@
     "priceLowHigh": "السعر: من الأقل للأعلى",
     "priceHighLow": "السعر: من الأعلى للأقل",
     "showingResults": "عرض {start}-{end} من {total} نتيجة",
+    "results": "نتائج",
     "resultsFor": "نتيجة لـ",
     "noResults": "لم يتم العثور على منتجات تطابق معاييرك.",
     "previous": "السابق",

@@ -69,7 +69,7 @@ export default function SearchClient() {
     <>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-text">
-          {data?.count || 0} {searchQuery ? t("resultsFor") + ` "${searchQuery}"` : "results"}
+          {data?.count || 0} {searchQuery ? t("resultsFor") + ` "${searchQuery}"` : t("results")}
         </h2>
       </div>
 
