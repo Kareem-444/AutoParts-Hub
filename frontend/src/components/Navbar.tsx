@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import { Link, useRouter } from "@/i18n/routing";
 import { User } from "@/types";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useCart } from "@/context/CartContext";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+  const { cart } = useCart();
+  const cartItemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -83,6 +86,11 @@ export default function Navbar() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
                   </svg>
+                  {cartItemCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-error text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                      {cartItemCount}
+                    </span>
+                  )}
                 </Link>
                 <Link href="/profile" className="px-3 py-2 text-sm text-text-muted hover:text-primary transition-colors rounded-md hover:bg-background">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +145,14 @@ export default function Navbar() {
             </Link>
             {user ? (
               <>
-                <Link href="/checkout" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">Cart</Link>
+                <Link href="/checkout" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">
+                  <span>Cart</span>
+                  {cartItemCount > 0 && (
+                    <span className="bg-error text-white text-xs rounded-full px-2 py-0.5 font-bold">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Link>
                 <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">My Profile</Link>
                 {user.is_seller && (
                   <Link href="/seller" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">Seller Dashboard</Link>

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { products, cart, reviews as reviewsApi } from "@/lib/api";
+import { products, reviews as reviewsApi } from "@/lib/api";
 import { Product, Review, Category } from "@/types";
 import StarRating from "@/components/StarRating";
+import { useCart } from "@/context/CartContext";
+import { useTranslations } from "next-intl";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -18,6 +20,11 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
+
+  const t = useTranslations("Product");
+  const { addItem } = useCart();
 
   // Review form state
   const [rating, setRating] = useState(5);
@@ -50,11 +57,14 @@ export default function ProductDetailPage() {
       return;
     }
     setAddingToCart(true);
+    setCartError(null);
+    setSuccess(false);
     try {
-      await cart.addItem(Number(id), quantity);
-      alert("Added to cart!");
+      await addItem(Number(id), quantity);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {
-      alert("Error adding to cart: " + err.message);
+      setCartError(err.message || t("errorAdding"));
     } finally {
       setAddingToCart(false);
     }
@@ -99,10 +109,10 @@ export default function ProductDetailPage() {
   if (error || !product) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <h2 className="text-2xl font-bold text-text mb-4">Product Not Found</h2>
+        <h2 className="text-2xl font-bold text-text mb-4">{t("productNotFound")}</h2>
         <p className="text-text-muted mb-8">{error}</p>
         <button onClick={() => router.back()} className="px-6 py-2 bg-primary text-white rounded-lg">
-          Go Back
+          {t("goBack")}
         </button>
       </div>
     );
@@ -177,7 +187,7 @@ export default function ProductDetailPage() {
                 <span className="text-sm text-text-muted ml-1">({product.review_count} reviews)</span>
               </div>
               <span className="text-border-dark">|</span>
-              <span className="text-sm text-text-muted font-medium">Part Code: #{product.id.toString().padStart(6, "0")}</span>
+              <span className="text-sm text-text-muted font-medium">{t("partCode")}: #{product.id.toString().padStart(6, "0")}</span>
             </div>
           </div>
 
@@ -220,47 +230,58 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Add to Cart Actions */}
-          <div className="mt-auto flex flex-col sm:flex-row gap-4">
-            <div className="flex items-center border border-border rounded-xl h-14 bg-surface w-full sm:w-32 shrink-0">
+          <div className="mt-auto flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex items-center border border-border rounded-xl h-14 bg-surface w-full sm:w-32 shrink-0">
+                <button
+                  className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max={product.stock}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.min(product.stock, Math.max(1, parseInt(e.target.value) || 1)))}
+                  className="flex-1 w-full text-center font-semibold text-text focus:outline-none bg-transparent"
+                />
+                <button
+                  className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text"
+                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                >
+                  +
+                </button>
+              </div>
+              
               <button
-                className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                onClick={handleAddToCart}
+                disabled={addingToCart || product.stock < 1}
+                className={`flex-1 h-14 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm transition-colors ${
+                  product.stock < 1 
+                    ? "bg-background-alt text-text-muted cursor-not-allowed"
+                    : "bg-primary text-white hover:bg-primary-dark active:bg-blue-900"
+                }`}
               >
-                -
-              </button>
-              <input
-                type="number"
-                min="1"
-                max={product.stock}
-                value={quantity}
-                onChange={(e) => setQuantity(Math.min(product.stock, Math.max(1, parseInt(e.target.value) || 1)))}
-                className="flex-1 w-full text-center font-semibold text-text focus:outline-none bg-transparent"
-              />
-              <button
-                className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text"
-                onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-              >
-                +
+                {addingToCart ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                      {t("adding")}
+                    </span>
+                ) : product.stock < 1 ? t("outOfStock") : t("addToCart")}
               </button>
             </div>
             
-            <button
-              onClick={handleAddToCart}
-              disabled={addingToCart || product.stock < 1}
-              className={`flex-1 h-14 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm transition-colors ${
-                product.stock < 1 
-                  ? "bg-background-alt text-text-muted cursor-not-allowed"
-                  : "bg-primary text-white hover:bg-primary-dark active:bg-blue-900"
-              }`}
-            >
-              {addingToCart ? "Adding..." : product.stock < 1 ? "Out of Stock" : "Add to Cart"}
-            </button>
+            {/* Status Messages */}
+            {success && <p className="text-green-600 text-sm font-medium mt-1">{t("addedToCart")}</p>}
+            {cartError && <p className="text-error text-sm font-medium mt-1">{cartError}</p>}
+            {product.stock > 0 && product.stock < 5 && (
+              <p className="text-error text-sm font-medium mt-1">
+                {t("hurryLeft", { stock: product.stock })}
+              </p>
+            )}
           </div>
-          {product.stock > 0 && product.stock < 5 && (
-            <p className="text-error text-sm font-medium mt-3 text-center sm:text-left">
-              Hurry! Only {product.stock} left in stock.
-            </p>
-          )}
         </div>
       </div>
 

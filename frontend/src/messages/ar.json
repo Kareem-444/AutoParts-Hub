@@ -36,7 +36,14 @@
     "addToCart": "أضف إلى السلة",
     "outOfStock": "نفذت الكمية",
     "price": "السعر",
-    "description": "الوصف"
+    "description": "الوصف",
+    "adding": "جاري الإضافة...",
+    "addedToCart": "تم الإضافة إلى السلة بنجاح!",
+    "errorAdding": "خطأ أثناء إضافة المنتج إلى السلة",
+    "hurryLeft": "أسرع! تبقى {stock} فقط في المخزن.",
+    "productNotFound": "المنتج غير موجود",
+    "goBack": "العودة",
+    "partCode": "رمز القطعة"
   },
   "Checkout": {
     "title": "الدفع",

@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { cart as cartApi, orders as ordersApi } from "@/lib/api";
-import { Cart } from "@/types";
+import { orders as ordersApi } from "@/lib/api";
+import { useCart } from "@/context/CartContext";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<Cart | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { cart, loading, updateItem, removeItem, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successOrderId, setSuccessOrderId] = useState<number | null>(null);
 
   // Form State
   const [address, setAddress] = useState("");
@@ -19,28 +19,28 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    async function fetchCart() {
-      try {
-        const data = await cartApi.get();
-        setCart(data);
-      } catch (err: any) {
-        if (err.message?.includes("credentials") || err.message?.includes("authentication")) {
-          router.push("/auth/login?redirect=/checkout");
-        } else {
-          setError("Failed to load cart");
-        }
-      } finally {
-        setLoading(false);
+    if (!loading && typeof window !== "undefined") {
+      if (!localStorage.getItem("token")) {
+        router.push("/auth/login?redirect=/checkout");
       }
     }
-    fetchCart();
-  }, [router]);
+  }, [loading, router]);
 
   const handleUpdateQuantity = async (itemId: number, newQty: number) => {
-    if (newQty < 0) return;
+    if (newQty < 1) {
+      await handleRemove(itemId);
+      return;
+    }
     try {
-      const data = await cartApi.updateItem(itemId, newQty);
-      setCart(data);
+      await updateItem(itemId, newQty);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemove = async (itemId: number) => {
+    try {
+      await removeItem(itemId);
     } catch (err) {
       console.error(err);
     }
@@ -48,18 +48,47 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!address) {
+      setError("Please enter a shipping address.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
     try {
-      await ordersApi.create({ shipping_address: address, phone, notes });
-      alert("Order placed successfully!");
-      router.push("/profile");
+      const order = await ordersApi.create({ shipping_address: address, phone, notes });
+      setSuccessOrderId(order.id);
+      await clearCart();
+      
+      // Redirect after 3 seconds
+      setTimeout(() => {
+        router.push("/profile");
+      }, 3000);
+      
     } catch (err: any) {
       setError(err.message || "Failed to place order");
       setSubmitting(false);
     }
   };
+
+  if (successOrderId) {
+    return (
+      <div className="flex flex-col h-[60vh] items-center justify-center text-center px-4">
+        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-3xl font-extrabold text-text mb-4">Order Confirmed!</h2>
+        <p className="text-lg text-text-muted mb-6">
+          Your order ID is <span className="font-bold text-text">#{successOrderId}</span>
+        </p>
+        <p className="text-sm text-text-light animate-pulse">
+          Redirecting to your profile in 3 seconds...
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -123,7 +152,7 @@ export default function CheckoutPage() {
                           <span className="text-sm font-medium px-2">{item.quantity}</span>
                           <button onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)} className="px-3 py-1 text-text-muted hover:text-text">+</button>
                         </div>
-                        <button onClick={() => handleUpdateQuantity(item.id, 0)} className="text-sm text-error font-medium hover:underline">
+                        <button onClick={() => handleRemove(item.id)} className="text-sm text-error font-medium hover:underline">
                           Remove
                         </button>
                       </div>
