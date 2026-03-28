@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/routing";
 import { User } from "@/types";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -98,6 +98,9 @@ export default function Navbar() {
                 Sign In
               </Link>
             )}
+            <div className="ml-4 border-l border-border pl-4 hidden md:block">
+              <LanguageSwitcher />
+            </div>
           </nav>
 
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 rounded-md hover:bg-background text-text-muted cursor-pointer">
@@ -147,6 +150,9 @@ export default function Navbar() {
             ) : (
               <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm font-medium text-primary hover:bg-blue-50 rounded-md">Sign In</Link>
             )}
+            <div className="mt-4 pt-4 border-t border-border">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       )}

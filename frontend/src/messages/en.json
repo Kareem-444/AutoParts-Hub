@@ -1,0 +1,46 @@
+{
+  "Common": {
+    "searchPlaceholder": "Search car parts…",
+    "login": "Login",
+    "signIn": "Sign In",
+    "logout": "Logout",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "allCategories": "All Categories",
+    "connectionError": "Connection Error",
+    "serverStartPrompt": "Make sure to start the Django server:"
+  },
+  "Navigation": {
+    "home": "Home",
+    "products": "Products",
+    "cart": "Shopping Cart",
+    "profile": "Profile"
+  },
+  "Home": {
+    "heroTitle": "Find the perfect part for your vehicle.",
+    "heroSubtitle": "Shop millions of new, used, and refurbished car spare parts from trusted sellers worldwide.",
+    "featuredProducts": "Featured Products",
+    "shopNow": "Shop Now",
+    "becomeSeller": "Become a Seller",
+    "shopByCategory": "Shop by Category",
+    "viewAllCategories": "View all categories →",
+    "verifiedSellers": "Verified Sellers",
+    "verifiedSellersDesc": "Every seller is vetted to ensure you get genuine, quality automotive parts.",
+    "securePayments": "Secure Payments",
+    "securePaymentsDesc": "Your transactions are encrypted and protected by industry-standard security.",
+    "easyReturns": "Easy Returns",
+    "easyReturnsDesc": "Didn't fit? Return eligible items within 30 days for a hassle-free refund.",
+    "justAdded": "Just Added"
+  },
+  "Product": {
+    "addToCart": "Add to Cart",
+    "outOfStock": "Out of Stock",
+    "price": "Price",
+    "description": "Description"
+  },
+  "Checkout": {
+    "title": "Checkout",
+    "placeOrder": "Place Order",
+    "total": "Total"
+  }
+}

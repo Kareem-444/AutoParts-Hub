@@ -1,0 +1,46 @@
+{
+  "Common": {
+    "searchPlaceholder": "ابحث عن قطع غيار...",
+    "login": "تسجيل الدخول",
+    "signIn": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "allCategories": "جميع الفئات",
+    "connectionError": "خطأ في الاتصال",
+    "serverStartPrompt": "تأكد من تشغيل خادم Django:"
+  },
+  "Navigation": {
+    "home": "الرئيسية",
+    "products": "المنتجات",
+    "cart": "سلة المشتريات",
+    "profile": "الملف الشخصي"
+  },
+  "Home": {
+    "heroTitle": "ابحث عن القطعة المثالية لمركبتك.",
+    "heroSubtitle": "تسوق الملايين من قطع غيار السيارات الجديدة والمستعملة والمجددة من بائعين موثوقين حول العالم.",
+    "featuredProducts": "المنتجات المميزة",
+    "shopNow": "تسوق الآن",
+    "becomeSeller": "كن بائعاً",
+    "shopByCategory": "تسوق حسب الفئة",
+    "viewAllCategories": "عرض جميع الفئات →",
+    "verifiedSellers": "بائعون موثوقون",
+    "verifiedSellersDesc": "يتم فحص كل بائع لضمان حصولك على قطع غيار أصلية وعالية الجودة.",
+    "securePayments": "مدفوعات آمنة",
+    "securePaymentsDesc": "معاملاتك مشفرة ومحمية بأمان معتمد في الصناعة.",
+    "easyReturns": "إرجاع سهل",
+    "easyReturnsDesc": "لم تناسبك؟ قم بإرجاع العناصر المؤهلة في غضون 30 يومًا لاسترداد أموالك بسهولة.",
+    "justAdded": "أضيفت حديثاً"
+  },
+  "Product": {
+    "addToCart": "أضف إلى السلة",
+    "outOfStock": "نفذت الكمية",
+    "price": "السعر",
+    "description": "الوصف"
+  },
+  "Checkout": {
+    "title": "الدفع",
+    "placeOrder": "تأكيد الطلب",
+    "total": "المجموع"
+  }
+}
