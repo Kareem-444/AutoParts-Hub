@@ -97,5 +97,30 @@
     "errorCreate": "Failed to create product",
     "errorUpdate": "Failed to update product",
     "errorDelete": "Failed to delete product"
+  },
+  "Search": {
+    "placeholder": "Search for auto parts...",
+    "filters": "Filters",
+    "clearAll": "Clear All",
+    "categories": "Categories",
+    "allCategories": "All Categories",
+    "condition": "Condition",
+    "all": "All",
+    "new": "New",
+    "used": "Used",
+    "refurbished": "Refurbished",
+    "carMake": "Car Make",
+    "carModel": "Car Model",
+    "carYear": "Year",
+    "sortBy": "Sort By",
+    "newest": "Newest",
+    "priceLowHigh": "Price: Low to High",
+    "priceHighLow": "Price: High to Low",
+    "showingResults": "Showing {start}-{end} of {total} results",
+    "resultsFor": "results for",
+    "noResults": "No products found matching your criteria.",
+    "previous": "Previous",
+    "next": "Next",
+    "apply": "Apply"
   }
 }

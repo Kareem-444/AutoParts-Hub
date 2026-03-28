@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useRouter } from "@/i18n/routing";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -14,11 +16,17 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const cartItemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const searchParams = useSearchParams();
+  const t = useTranslations("Search");
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearchQuery(q);
+  }, [searchParams]);
+
+  const handleSearch = () => {
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery("");
       setMenuOpen(false);
     }
   };
@@ -41,23 +49,25 @@ export default function Navbar() {
             <span className="text-xl font-bold text-primary hidden sm:block">AutoParts Hub</span>
           </Link>
 
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
+          <div className="hidden md:flex flex-1 max-w-xl mx-8">
             <div className="flex w-full">
               <input
                 type="text"
-                placeholder="Search car parts…"
+                placeholder={t("placeholder")}
                 value={searchQuery}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 px-4 py-2 border border-border rounded-l-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-primary-light bg-background"
               />
               <button
-                type="submit"
+                type="button"
+                onClick={handleSearch}
                 className="px-5 py-2 bg-primary text-white rounded-r-lg hover:bg-primary-dark transition-colors text-sm font-medium"
               >
-                Search
+                {t("apply")}
               </button>
             </div>
-          </form>
+          </div>
 
           <nav className="hidden md:flex items-center gap-1">
             <Link href="/search" className="px-3 py-2 text-sm text-text-muted hover:text-primary transition-colors rounded-md hover:bg-background">
@@ -121,18 +131,19 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden border-t border-border bg-surface">
           <div className="px-4 py-3">
-            <form onSubmit={handleSearch} className="flex mb-3">
+            <div className="flex mb-3">
               <input
                 type="text"
-                placeholder="Search car parts…"
+                placeholder={t("placeholder")}
                 value={searchQuery}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 px-4 py-2 border border-border rounded-l-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-light bg-background"
               />
-              <button type="submit" className="px-4 py-2 bg-primary text-white rounded-r-lg text-sm font-medium">
-                Search
+              <button type="button" onClick={handleSearch} className="px-4 py-2 bg-primary text-white rounded-r-lg text-sm font-medium">
+                {t("apply")}
               </button>
-            </form>
+            </div>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">
               Browse All Parts
             </Link>

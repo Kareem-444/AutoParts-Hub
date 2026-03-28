@@ -163,6 +163,49 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   return data as T;
 }
 
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export async function apiPaginated<T>(endpoint: string, options: RequestOptions = {}): Promise<PaginatedResponse<T>> {
+  const url = `${API_BASE}${endpoint}`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+
+  const token = _getAccessToken ? _getAccessToken() : null;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  let res = await fetch(url, { ...options, headers, credentials: "include" });
+
+  if (res.status === 401) {
+    const newToken = await attemptRefresh();
+    if (newToken) {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      res = await fetch(url, { ...options, headers, credentials: "include" });
+    } else {
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized");
+    }
+  }
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(error.detail || error.error || JSON.stringify(error));
+  }
+
+  return await res.json();
+}
+
 // Auth
 export const auth = {
   me: () => apiClient<User>("/auth/me/"),
@@ -177,6 +220,7 @@ export const categories = {
 // Products
 export const products = {
   list: (params = "") => apiClient<Product[]>(`/products/${params ? "?" + params : ""}`),
+  search: (params = "") => apiPaginated<Product>(`/products/${params ? "?" + params : ""}`),
   get: (id: number | string) => apiClient<Product>(`/products/${id}/`),
   featured: () => apiClient<Product[]>("/products/featured/"),
   latest: () => apiClient<Product[]>("/products/latest/"),

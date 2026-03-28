@@ -97,5 +97,30 @@
     "errorCreate": "حدث خطأ أثناء إنشاء المنتج",
     "errorUpdate": "حدث خطأ أثناء تحديث المنتج",
     "errorDelete": "حدث خطأ أثناء حذف المنتج"
+  },
+  "Search": {
+    "placeholder": "البحث عن قطع غيار السيارات...",
+    "filters": "الفلاتر",
+    "clearAll": "مسح الكل",
+    "categories": "الفئات",
+    "allCategories": "جميع الفئات",
+    "condition": "الحالة",
+    "all": "الكل",
+    "new": "جديد",
+    "used": "مستعمل",
+    "refurbished": "مجدد",
+    "carMake": "صانع السيارة",
+    "carModel": "موديل السيارة",
+    "carYear": "سنة الصنع",
+    "sortBy": "ترتيب حسب",
+    "newest": "الأحدث",
+    "priceLowHigh": "السعر: من الأقل للأعلى",
+    "priceHighLow": "السعر: من الأعلى للأقل",
+    "showingResults": "عرض {start}-{end} من {total} نتيجة",
+    "resultsFor": "نتيجة لـ",
+    "noResults": "لم يتم العثور على منتجات تطابق معاييرك.",
+    "previous": "السابق",
+    "next": "التالي",
+    "apply": "تطبيق"
   }
 }
