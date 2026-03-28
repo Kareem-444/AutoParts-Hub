@@ -18,6 +18,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils.text import slugify
+from cloudinary.models import CloudinaryField
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +33,7 @@ class User(AbstractUser):
     )
     phone = models.CharField(max_length=20, blank=True)
     address = models.TextField(blank=True)
-    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    avatar = CloudinaryField("avatar", folder="autoparts/avatars", blank=True, null=True)
 
     class Meta:
         ordering = ["-date_joined"]
@@ -50,7 +51,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=120, unique=True, blank=True)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to="categories/", blank=True, null=True)
+    image = CloudinaryField("category_image", folder="autoparts/categories", blank=True, null=True)
     parent = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,
@@ -144,7 +145,7 @@ class ProductImage(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="images"
     )
-    image = models.ImageField(upload_to="products/")
+    image = CloudinaryField("product_image", folder="autoparts/products")
     alt_text = models.CharField(max_length=200, blank=True)
     is_primary = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -280,7 +281,7 @@ class SellerProfile(models.Model):
     )
     store_name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    logo = models.ImageField(upload_to="sellers/", blank=True, null=True)
+    logo = CloudinaryField("seller_logo", folder="autoparts/sellers", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

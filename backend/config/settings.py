@@ -7,6 +7,9 @@ CORS is configured to allow the Next.js frontend on localhost:3000.
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -36,6 +39,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "django_filters",
+    "cloudinary_storage",
+    "cloudinary",
     # Local
     "api",
 ]
@@ -121,6 +126,17 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# ---------------------------------------------------------------------------
+# Cloudinary (image storage)
+# ---------------------------------------------------------------------------
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY", ""),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", ""),
+}
+
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 # ---------------------------------------------------------------------------
 # Default primary key

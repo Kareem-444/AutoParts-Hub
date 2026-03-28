@@ -210,7 +210,45 @@ class ProductViewSet(viewsets.ModelViewSet):
         return [permissions.AllowAny()]
 
     def perform_create(self, serializer):
-        serializer.save(seller=self.request.user)
+        product = serializer.save(seller=self.request.user)
+        # Handle multiple image uploads
+        images_data = self.request.FILES.getlist("images")
+        for i, image_data in enumerate(images_data):
+            ProductImage.objects.create(
+                product=product,
+                image=image_data,
+                is_primary=(i == 0) # Make first image primary
+            )
+
+    def perform_update(self, serializer):
+        product = serializer.save()
+        # Handle additional image uploads
+        images_data = self.request.FILES.getlist("images")
+        for image_data in images_data:
+            ProductImage.objects.create(
+                product=product,
+                image=image_data,
+                is_primary=False # Don't overwrite existing primary necessarily
+            )
+            
+    @action(detail=True, methods=["delete"])
+    def delete_image(self, request, pk=None):
+        """Delete a specific image from a product."""
+        product = self.get_object()
+        image_id = request.query_params.get("image_id")
+        
+        if not image_id:
+            return Response({"error": "image_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            image = ProductImage.objects.get(id=image_id, product=product)
+            # Cloudinary storage automatically deletes the file on Cloudinary when the model instance is deleted
+            # if configured correctly, or we might need explicit cloudinary.api.delete_resources if it doesn't.
+            # django-cloudinary-storage typically handles this or we can just delete the DB record.
+            image.delete()
+            return Response({"status": "Image deleted"}, status=status.HTTP_204_NO_CONTENT)
+        except ProductImage.DoesNotExist:
+            return Response({"error": "Image not found"}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=False, methods=["get"])
     def featured(self, request):

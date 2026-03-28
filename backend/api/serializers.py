@@ -156,12 +156,19 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
 class ProductWriteSerializer(serializers.ModelSerializer):
     """Serializer for creating / updating products (seller-facing)."""
+    
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
 
     class Meta:
         model = Product
         fields = (
             "id", "title", "description", "price", "stock", "condition",
             "car_make", "car_model", "car_year", "category", "featured",
+            "images",
         )
 
 

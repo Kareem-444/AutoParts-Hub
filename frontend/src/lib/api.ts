@@ -58,6 +58,57 @@ interface RequestOptions extends RequestInit {
   headers?: Record<string, string>;
 }
 
+export async function apiFormData<T>(endpoint: string, formData: FormData, options: RequestOptions = {}): Promise<T> {
+  const url = `${API_BASE}${endpoint}`;
+
+  const headers: Record<string, string> = {
+    ...options.headers,
+  };
+
+  // Attach access token if available
+  const token = _getAccessToken ? _getAccessToken() : null;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Attach CSRF token for mutating requests
+  const method = (options.method || "POST").toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const csrf = await getCSRFToken();
+    if (csrf) {
+      headers["X-CSRFToken"] = csrf;
+    }
+  }
+
+  let res = await fetch(url, { ...options, method, body: formData, headers, credentials: "include" });
+
+  // If 401, attempt silent refresh and retry once
+  if (res.status === 401) {
+    const newToken = await attemptRefresh();
+    if (newToken) {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      res = await fetch(url, { ...options, method, body: formData, headers, credentials: "include" });
+    } else {
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth/login";
+      }
+      throw new Error("Unauthorized");
+    }
+  }
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(error.detail || error.error || JSON.stringify(error));
+  }
+
+  if (res.status === 204) return null as T;
+  const data = await res.json();
+  if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
+    return data.results as T;
+  }
+  return data as T;
+}
+
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
 
@@ -129,9 +180,10 @@ export const products = {
   get: (id: number | string) => apiClient<Product>(`/products/${id}/`),
   featured: () => apiClient<Product[]>("/products/featured/"),
   latest: () => apiClient<Product[]>("/products/latest/"),
-  create: (data: Partial<Product>) => apiClient<Product>("/products/", { method: "POST", body: JSON.stringify(data) }),
-  update: (id: number, data: Partial<Product>) => apiClient<Product>(`/products/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+  create: (data: FormData) => apiFormData<Product>("/products/", data, { method: "POST" }),
+  update: (id: number, data: FormData) => apiFormData<Product>(`/products/${id}/`, data, { method: "PATCH" }),
   delete: (id: number) => apiClient<void>(`/products/${id}/`, { method: "DELETE" }),
+  deleteImage: (productId: number, imageId: number) => apiClient<void>(`/products/${productId}/delete_image/?image_id=${imageId}`, { method: "DELETE" }),
 };
 
 // Reviews
