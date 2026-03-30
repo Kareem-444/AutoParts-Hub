@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django_filters",
     "cloudinary_storage",
     "cloudinary",
+    "social_django",
     # Local
     "api",
 ]
@@ -57,6 +58,24 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+# ---------------------------------------------------------------------------
+# Authentication Backends
+# ---------------------------------------------------------------------------
+AUTHENTICATION_BACKENDS = (
+    "social_core.backends.google.GoogleOAuth2",
+    "django.contrib.auth.backends.ModelBackend",
+)
+
+# ---------------------------------------------------------------------------
+# Google OAuth Configuration
+# ---------------------------------------------------------------------------
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv("GOOGLE_CLIENT_ID", "")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
 ]
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, orders as ordersApi } from "@/lib/api";
+import { auth, orders as ordersApi, apiClient } from "@/lib/api";
 import { User, Order } from "@/types";
 
 export default function ProfilePage() {
@@ -10,6 +10,10 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<{type: "error" | "success" | "", msg: string}>({type: "", msg: ""});
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
 
   useEffect(() => {
     async function initProfile() {
@@ -35,6 +39,27 @@ export default function ProfilePage() {
   }
 
   if (!user) return null;
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSettingPassword(true);
+    setPasswordStatus({ type: "", msg: "" });
+
+    try {
+      await apiClient<{detail: string}>("/auth/set_password/", {
+        method: "POST",
+        body: JSON.stringify({ password: newPassword }),
+      });
+      
+      setPasswordStatus({ type: "success", msg: "Password set successfully! You can now use it to log in." });
+      setUser({ ...user, has_usable_password: true });
+      setNewPassword("");
+    } catch (err: any) {
+      setPasswordStatus({ type: "error", msg: err.message });
+    } finally {
+      setIsSettingPassword(false);
+    }
+  };
 
   return (
     <div className="bg-background min-h-screen py-12">
@@ -135,6 +160,44 @@ export default function ProfilePage() {
                   <textarea rows={3} defaultValue={user.address} className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm" disabled />
                 </div>
               </form>
+
+              {user.has_usable_password === false && (
+                <div className="mt-8 pt-8 border-t border-border">
+                  <h3 className="text-md font-bold text-text mb-4">Set Local Password</h3>
+                  <p className="text-sm text-text-muted mb-4">You signed in with a social account. Set a password if you want to be able to sign in with your email directly.</p>
+                  
+                  {passwordStatus.msg && (
+                    <div className={`p-3 rounded-lg text-sm mb-4 border flex items-start gap-2 ${
+                      passwordStatus.type === "success" 
+                        ? "bg-green-50 text-green-700 border-green-100" 
+                        : "bg-red-50 text-error border-red-100"
+                    }`}>
+                      <span>{passwordStatus.msg}</span>
+                    </div>
+                  )}
+
+                  <form className="max-w-lg space-y-4" onSubmit={handleSetPassword}>
+                    <div>
+                      <label className="block text-sm font-medium text-text mb-1">New Password</label>
+                      <input 
+                        type="password" 
+                        required 
+                        minLength={8}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-sm focus:ring-primary focus:border-primary focus:outline-none" 
+                      />
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={isSettingPassword}
+                      className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark disabled:opacity-50"
+                    >
+                      {isSettingPassword ? "Saving..." : "Set Password"}
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </div>

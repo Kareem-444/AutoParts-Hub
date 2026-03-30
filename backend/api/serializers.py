@@ -20,11 +20,15 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 class UserSerializer(serializers.ModelSerializer):
     """Read-only user representation."""
+    has_usable_password = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "is_seller", "phone", "address", "avatar", "date_joined")
+        fields = ("id", "username", "email", "is_seller", "phone", "address", "avatar", "date_joined", "has_usable_password")
         read_only_fields = fields
+        
+    def get_has_usable_password(self, obj):
+        return obj.has_usable_password()
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -170,6 +174,16 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "car_make", "car_model", "car_year", "category", "featured",
             "images",
         )
+
+    def create(self, validated_data):
+        # Remove 'images' so DRF doesn't try to save files directly to the relation
+        validated_data.pop("images", [])
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Remove 'images' so DRF doesn't try to save files directly to the relation
+        validated_data.pop("images", [])
+        return super().update(instance, validated_data)
 
 
 # ---------------------------------------------------------------------------

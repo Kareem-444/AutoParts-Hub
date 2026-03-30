@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.4",
     "jose": "^6.2.2",
     "next": "^15.1.0",
     "next-intl": "^4.8.3",

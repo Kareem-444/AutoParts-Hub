@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,13 +50,15 @@ export default async function RootLayout({
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <body className={`min-h-screen flex flex-col bg-background text-text ${inter.className}`}>
         <NextIntlClientProvider messages={messages}>
-          <AuthProvider>
-            <CartProvider>
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </CartProvider>
-          </AuthProvider>
+          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+            <AuthProvider>
+              <CartProvider>
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </CartProvider>
+            </AuthProvider>
+          </GoogleOAuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

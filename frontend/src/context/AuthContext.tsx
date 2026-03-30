@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (credentials: { username: string; password: string }) => Promise<void>;
   register: (data: Record<string, unknown>) => Promise<User>;
   logout: () => Promise<void>;
+  setAuthFromGoogle: (data: { access: string; user: User }) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,6 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const setAuthFromGoogle = (data: { access: string; user: User }) => {
+    setAccessToken(data.access);
+    setUser(data.user);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -116,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        setAuthFromGoogle,
       }}
     >
       {children}

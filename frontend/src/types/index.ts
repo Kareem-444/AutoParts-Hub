@@ -8,6 +8,7 @@ export interface User {
   avatar?: string | null;
   date_joined: string;
   is_staff?: boolean;
+  has_usable_password?: boolean;
 }
 
 export interface Category {

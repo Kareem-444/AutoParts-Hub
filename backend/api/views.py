@@ -1,10 +1,14 @@
 from django.contrib.auth import authenticate, get_user_model
+from django.conf import settings
+from django.core.signing import dumps, loads, BadSignature
 from django.middleware.csrf import get_token
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from .models import (
     Category, Product, ProductImage, Review,
@@ -172,6 +176,105 @@ class AuthViewSet(viewsets.ViewSet):
     def me(self, request):
         """Return the current authenticated user."""
         return Response(UserSerializer(request.user).data)
+
+    @action(detail=False, methods=["post"])
+    def google(self, request):
+        """Verify Google token. If new user, return a temp token for profile completion."""
+        credential = request.data.get("credential")
+        if not credential:
+            return Response({"error": "No credential provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                credential, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+            )
+            email = idinfo.get("email")
+            
+            # Check if user exists
+            user = User.objects.filter(email=email).first()
+            if user:
+                # Login directly
+                refresh = CustomTokenObtainPairSerializer.get_token(user)
+                access = str(refresh.access_token)
+                response = Response({"access": access, "user": UserSerializer(user).data})
+                return _set_refresh_cookie(response, str(refresh))
+            else:
+                # Need profile completion. Return temporary signed token.
+                temp_data = {
+                    "email": email,
+                    "google_id": idinfo.get("sub"),
+                    "name": idinfo.get("name", ""),
+                    "avatar_url": idinfo.get("picture", "")
+                }
+                temp_token = dumps(temp_data, salt="google-auth-profile")
+                return Response({
+                    "status": "profile_incomplete",
+                    "temp_token": temp_token,
+                    "email": email,
+                    "name": idinfo.get("name", "")
+                }, status=status.HTTP_200_OK)
+                
+        except ValueError:
+            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["post"])
+    def complete_google(self, request):
+        """Complete Google registration with a temp_token and profile info."""
+        temp_token = request.data.get("temp_token")
+        username = request.data.get("username")
+        phone = request.data.get("phone", "")
+        is_seller = request.data.get("is_seller", False)
+
+        if not temp_token or not username:
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = loads(temp_token, salt="google-auth-profile", max_age=3600)  # 1 hour
+            email = data["email"]
+            
+            # Create user
+            if User.objects.filter(username=username).exists():
+                return Response({"error": "Username already taken"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = User.objects.create(
+                username=username,
+                email=email,
+                phone=phone,
+                is_seller=is_seller
+            )
+            user.set_unusable_password()
+            user.save()
+
+            if user.is_seller:
+                SellerProfile.objects.get_or_create(
+                    user=user,
+                    defaults={"store_name": f"{user.username}'s Store"},
+                )
+
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
+            access = str(refresh.access_token)
+            response = Response({"access": access, "user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)
+            return _set_refresh_cookie(response, str(refresh))
+
+        except BadSignature:
+            return Response({"error": "Invalid or expired session"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def set_password(self, request):
+        """Set password for users without one (e.g. Google auth)."""
+        user = request.user
+        if user.has_usable_password():
+            return Response({"error": "You already have a password set"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        password = request.data.get("password")
+        if not password or len(password) < 8:
+            return Response({"error": "Password must be at least 8 characters"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        user.set_password(password)
+        user.save()
+        
+        # Invalidate refresh tokens since password changed? Actually just tell user success
+        return Response({"detail": "Password set successfully"})
 
 
 # ---------------------------------------------------------------------------
