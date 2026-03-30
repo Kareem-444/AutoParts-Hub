@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { products, reviews as reviewsApi } from "@/lib/api";
+import { getImageUrl } from "@/lib/imageUtils";
 import { Product, Review, Category } from "@/types";
 import StarRating from "@/components/StarRating";
 import { useCart } from "@/context/CartContext";
@@ -42,7 +43,7 @@ export default function ProductDetailPage() {
           reviewsApi.list(id),
         ]);
         setProduct(prod);
-        setActiveImage(prod.primary_image || null);
+        setActiveImage(getImageUrl(prod.primary_image) || null);
         setReviewsList(revs);
       } catch (err: any) {
         setError("Could not load product details.");
@@ -148,7 +149,7 @@ export default function ProductDetailPage() {
         <div className="w-full md:w-1/2 shrink-0">
           <div className="bg-surface border border-border rounded-2xl overflow-hidden aspect-[4/3] mb-4">
             {activeImage ? (
-              <img src={activeImage} alt={product.title} className="w-full h-full object-cover" />
+              <img src={getImageUrl(activeImage)} alt={product.title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-text-light">
                 <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,12 +163,12 @@ export default function ProductDetailPage() {
               {product.images.map((img) => (
                 <button
                   key={img.id}
-                  onClick={() => setActiveImage(img.image)}
+                  onClick={() => setActiveImage(getImageUrl(img.image))}
                   className={`w-20 h-20 shrink-0 border-2 rounded-lg overflow-hidden ${
-                    activeImage === img.image ? "border-primary" : "border-border hover:border-text-muted"
+                    activeImage === getImageUrl(img.image) ? "border-primary" : "border-border hover:border-text-muted"
                   }`}
                 >
-                  <img src={img.image} alt={img.alt_text} className="w-full h-full object-cover" />
+                  <img src={getImageUrl(img.image)} alt={img.alt_text} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

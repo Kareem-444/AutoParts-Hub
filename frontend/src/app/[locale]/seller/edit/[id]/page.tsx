@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, use } from "react";
 import { useRouter, Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { products as productsApi, categories as categoriesApi } from "@/lib/api";
+import { getImageUrl } from "@/lib/imageUtils";
 import { Category, Product, ProductImage } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -252,7 +253,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     {/* Existing Images */}
                     {existingImages.map((img, i) => (
                       <div key={`exist-${img.id}`} className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-border group">
-                        <img src={img.image} alt="existing" className="w-full h-full object-cover" />
+                        <img src={getImageUrl(img.image)} alt="existing" className="w-full h-full object-cover" />
                         <button 
                           type="button" 
                           onClick={() => removeExistingImage(img.id)}
