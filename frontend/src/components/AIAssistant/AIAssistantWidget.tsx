@@ -209,33 +209,38 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
     setIsLoading(true);
 
     try {
-      // Build conversation history for multi-turn
-      const apiMessages = [...messages, userMsg]
+      // Build conversation history for multi-turn (Gemini uses "model" instead of "assistant")
+      const geminiContents = [...messages, userMsg]
         .filter((m) => m.role === "user" || m.role === "assistant")
-        .map((m) => ({ role: m.role, content: m.content }));
+        .map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        }));
 
       // TODO: Replace with production AI endpoint via NEXT_PUBLIC_AI_API_URL
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 300,
-          system: buildSystemPrompt(pathname),
-          messages: apiMessages,
-        }),
-      });
+      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: [{ text: buildSystemPrompt(pathname) }],
+            },
+            contents: geminiContents,
+          }),
+        }
+      );
 
       if (!response.ok) throw new Error(`API ${response.status}`);
 
       const data = await response.json();
       const assistantContent =
-        data.content?.[0]?.text ?? "I couldn't generate a response.";
+        data.candidates?.[0]?.content?.parts?.[0]?.text ??
+        "I couldn't generate a response.";
 
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
