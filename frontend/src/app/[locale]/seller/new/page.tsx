@@ -6,12 +6,14 @@ import { useTranslations } from "next-intl";
 import { products as productsApi, categories as categoriesApi } from "@/lib/api";
 import { Category } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { useModal } from "@/context/ModalContext";
 
 export default function NewProductPage() {
   const t = useTranslations();
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showModal } = useModal();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,7 +59,11 @@ export default function NewProductPage() {
       const filesToAdd = newFiles.slice(0, totalAllowed);
 
       if (filesToAdd.length < newFiles.length) {
-        alert(t("Seller.maxImages"));
+        showModal({
+          type: "warning",
+          title: t("Seller.maxImages"),
+          message: `You can only upload up to 5 images.`,
+        });
       }
 
       setImages(prev => [...prev, ...filesToAdd]);
@@ -76,7 +82,11 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (images.length === 0) {
-      alert(t("Seller.maxImages") + " (Min 1)");
+      showModal({
+        type: "warning",
+        title: "Missing Images",
+        message: t("Seller.maxImages") + " (Min 1)",
+      });
       return;
     }
 
@@ -91,10 +101,18 @@ export default function NewProductPage() {
       });
 
       await productsApi.create(data);
-      alert(t("Seller.successCreate"));
-      router.push("/seller");
+      showModal({
+        type: "success",
+        title: "Success",
+        message: t("Seller.successCreate"),
+        onConfirm: () => router.push("/seller")
+      });
     } catch (err: any) {
-      alert(t("Seller.errorCreate") + ": " + (err.message || ""));
+      showModal({
+        type: "error",
+        title: "Error Creating Product",
+        message: t("Seller.errorCreate") + ": " + (err.message || ""),
+      });
       setLoading(false);
     }
   };

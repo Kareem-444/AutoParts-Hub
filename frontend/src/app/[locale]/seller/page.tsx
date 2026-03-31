@@ -6,11 +6,14 @@ import { useTranslations } from "next-intl";
 import { seller as sellerApi, products as productsApi } from "@/lib/api";
 import { SellerProfile, Product, Order } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import SellerLoading from "./loading";
+import { useModal } from "@/context/ModalContext";
 
 export default function SellerDashboardPage() {
   const t = useTranslations();
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { showModal } = useModal();
   
   const [profile, setProfile] = useState<SellerProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,11 +21,6 @@ export default function SellerDashboardPage() {
   const [stats, setStats] = useState({ products: 0, orders: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
-
-  // Delete modal state
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -58,33 +56,30 @@ export default function SellerDashboardPage() {
   }, [router, isAuthenticated, authLoading]);
 
   const confirmDelete = (id: number) => {
-    setDeletingId(id);
-    setShowDeleteModal(true);
-  };
-
-  const executeDelete = async () => {
-    if (!deletingId) return;
-    setIsDeleting(true);
-    try {
-      await productsApi.delete(deletingId);
-      // Optimistic update
-      setProducts(products.filter(p => p.id !== deletingId));
-      setStats(prev => ({ ...prev, products: prev.products - 1 }));
-      setShowDeleteModal(false);
-    } catch (err: any) {
-      alert(t("Seller.errorDelete") + ": " + (err.message || ""));
-    } finally {
-      setIsDeleting(false);
-      setDeletingId(null);
-    }
+    showModal({
+      type: "confirm",
+      title: t("Seller.deleteProduct"),
+      message: t("Seller.confirmDelete"),
+      confirmText: t("Seller.delete"),
+      cancelText: t("Seller.cancel"),
+      onConfirm: async () => {
+        try {
+          await productsApi.delete(id);
+          setProducts(prevProducts => prevProducts.filter(p => p.id !== id));
+          setStats(prev => ({ ...prev, products: prev.products - 1 }));
+        } catch (err: any) {
+          showModal({
+            type: "error",
+            title: t("Seller.errorDelete"),
+            message: err.message || "Failed to delete product.",
+          });
+        }
+      }
+    });
   };
 
   if (loading || authLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
+    return <SellerLoading />;
   }
 
   return (
@@ -261,32 +256,6 @@ export default function SellerDashboardPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface rounded-xl shadow-xl max-w-sm w-full p-6">
-            <h3 className="text-xl font-bold text-text mb-2">{t("Seller.deleteProduct")}</h3>
-            <p className="text-text-muted mb-6">{t("Seller.confirmDelete")}</p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-text font-medium hover:bg-background rounded-lg transition-colors border border-border"
-                disabled={isDeleting}
-              >
-                {t("Seller.cancel")}
-              </button>
-              <button
-                onClick={executeDelete}
-                className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                disabled={isDeleting}
-              >
-                {isDeleting ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> : null}
-                {t("Seller.delete")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

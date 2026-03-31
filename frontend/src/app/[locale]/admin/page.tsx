@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { admin, auth } from "@/lib/api";
 import { User, Order } from "@/types";
+import { useModal } from "@/context/ModalContext";
 
 export default function AdminPanelPage() {
   const router = useRouter();
+  const { showModal } = useModal();
   const [activeTab, setActiveTab] = useState("orders");
   const [users, setUsers] = useState<User[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -38,7 +40,11 @@ export default function AdminPanelPage() {
       const updated = await admin.updateOrder(id, { status } as any);
       setOrders(orders.map((o) => (o.id === id ? updated : o)));
     } catch (err: any) {
-      alert("Failed to update status: " + err.message);
+      showModal({
+        type: "error",
+        title: "Update Failed",
+        message: "Failed to update status: " + err.message
+      });
     }
   };
 

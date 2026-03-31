@@ -6,6 +6,7 @@ export interface User {
   phone?: string;
   address?: string;
   avatar?: string | null;
+  avatar_url?: string | null;
   date_joined: string;
   is_staff?: boolean;
   has_usable_password?: boolean;

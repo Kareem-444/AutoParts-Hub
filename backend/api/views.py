@@ -15,7 +15,7 @@ from .models import (
     Cart, CartItem, Order, OrderItem, SellerProfile,
 )
 from .serializers import (
-    UserSerializer, RegisterSerializer, LoginSerializer,
+    UserSerializer, UserUpdateSerializer, RegisterSerializer, LoginSerializer,
     CategorySerializer,
     ProductListSerializer, ProductDetailSerializer, ProductWriteSerializer,
     ProductImageSerializer, ReviewSerializer,
@@ -175,7 +175,16 @@ class AuthViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
         """Return the current authenticated user."""
-        return Response(UserSerializer(request.user).data)
+        return Response(UserSerializer(request.user, context={"request": request}).data)
+
+    @action(detail=False, methods=["patch"], permission_classes=[permissions.IsAuthenticated])
+    def update_profile(self, request):
+        """Update authenticated user's profile info (e.g. avatar, address)."""
+        serializer = UserUpdateSerializer(instance=request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response(UserSerializer(request.user, context={"request": request}).data)
 
     @action(detail=False, methods=["post"])
     def google(self, request):

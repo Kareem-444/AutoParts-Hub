@@ -21,14 +21,28 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     """Read-only user representation."""
     has_usable_password = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "is_seller", "phone", "address", "avatar", "date_joined", "has_usable_password")
+        fields = ("id", "username", "email", "is_seller", "phone", "address", "avatar", "avatar_url", "date_joined", "has_usable_password")
         read_only_fields = fields
         
     def get_has_usable_password(self, obj):
         return obj.has_usable_password()
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get("request")
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """Update user profile info (avatar, address)"""
+    class Meta:
+        model = User
+        fields = ("avatar", "address")
 
 
 class RegisterSerializer(serializers.ModelSerializer):

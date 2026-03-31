@@ -9,6 +9,7 @@ import StarRating from "@/components/StarRating";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslations } from "next-intl";
+import ProductDetailLoading from "./loading";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -43,7 +44,14 @@ export default function ProductDetailPage() {
           reviewsApi.list(id),
         ]);
         setProduct(prod);
-        setActiveImage(getImageUrl(prod.primary_image) || null);
+        
+        // Fix for missing primary_image
+        let defaultImage = prod.primary_image ? getImageUrl(prod.primary_image) : null;
+        if (!defaultImage && prod.images && prod.images.length > 0) {
+          defaultImage = getImageUrl(prod.images[0].image);
+        }
+        setActiveImage(defaultImage);
+        
         setReviewsList(revs);
       } catch (err: any) {
         setError("Could not load product details.");
@@ -94,19 +102,7 @@ export default function ProductDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="animate-pulse flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-1/2 h-96 bg-surface border border-border rounded-xl"></div>
-          <div className="w-full md:w-1/2 space-y-4">
-            <div className="h-8 bg-surface rounded w-3/4"></div>
-            <div className="h-4 bg-surface rounded w-1/4"></div>
-            <div className="h-6 bg-surface rounded w-1/5 mt-6"></div>
-            <div className="h-24 bg-surface rounded w-full mt-6"></div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ProductDetailLoading />;
   }
 
   if (error || !product) {
@@ -147,9 +143,9 @@ export default function ProductDetailPage() {
       <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
         {/* Images section */}
         <div className="w-full md:w-1/2 shrink-0">
-          <div className="bg-surface border border-border rounded-2xl overflow-hidden aspect-[4/3] mb-4">
+          <div className="bg-white border border-border rounded-2xl overflow-hidden aspect-[4/3] mb-4 relative z-10 group">
             {activeImage ? (
-              <img src={getImageUrl(activeImage)} alt={product.title} className="w-full h-full object-cover" />
+              <img src={activeImage} alt={product.title} className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-text-light">
                 <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">

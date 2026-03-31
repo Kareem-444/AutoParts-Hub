@@ -209,6 +209,7 @@ export async function apiPaginated<T>(endpoint: string, options: RequestOptions 
 // Auth
 export const auth = {
   me: () => apiClient<User>("/auth/me/"),
+  updateProfile: (data: FormData) => apiFormData<User>("/auth/update_profile/", data, { method: "PATCH" }),
 };
 
 // Categories

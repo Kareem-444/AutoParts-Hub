@@ -7,6 +7,7 @@ import { products as productsApi, categories as categoriesApi } from "@/lib/api"
 import { getImageUrl } from "@/lib/imageUtils";
 import { Category, Product, ProductImage } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { useModal } from "@/context/ModalContext";
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -16,6 +17,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showModal } = useModal();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,8 +74,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         
         setExistingImages(prod.images || []);
       } catch (err: any) {
-        alert(err.message || "Failed to load product data");
-        router.push("/seller");
+        showModal({
+          type: "error",
+          title: "Error Loading Data",
+          message: err.message || "Failed to load product data",
+          onConfirm: () => router.push("/seller")
+        });
       } finally {
         setInitLoading(false);
       }
@@ -88,7 +94,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       const filesToAdd = addedFiles.slice(0, allowedCount);
 
       if (filesToAdd.length < addedFiles.length) {
-        alert(t("Seller.maxImages"));
+        showModal({
+          type: "warning",
+          title: t("Seller.maxImages"),
+          message: "You have selected more images than allowed.",
+        });
       }
 
       setNewImages(prev => [...prev, ...filesToAdd]);
@@ -105,20 +115,33 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   };
 
   const removeExistingImage = async (imageId: number) => {
-    if (!confirm(t("Seller.confirmDelete"))) return;
-    
-    try {
-      await productsApi.deleteImage(productId, imageId);
-      setExistingImages(prev => prev.filter(img => img.id !== imageId));
-    } catch (err: any) {
-      alert("Error deleting image: " + (err.message || ""));
-    }
+    showModal({
+      type: "confirm",
+      title: "Delete Image",
+      message: t("Seller.confirmDelete"),
+      onConfirm: async () => {
+        try {
+          await productsApi.deleteImage(productId, imageId);
+          setExistingImages(prev => prev.filter(img => img.id !== imageId));
+        } catch (err: any) {
+          showModal({
+            type: "error",
+            title: "Deletion Error",
+            message: "Error deleting image: " + (err.message || ""),
+          });
+        }
+      }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (totalImages === 0) {
-      alert(t("Seller.maxImages") + " (Min 1)");
+      showModal({
+        type: "warning",
+        title: "Missing Images",
+        message: t("Seller.maxImages") + " (Min 1)",
+      });
       return;
     }
 
@@ -133,10 +156,18 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       });
 
       await productsApi.update(productId, data);
-      alert(t("Seller.successUpdate"));
-      router.push("/seller");
+      showModal({
+        type: "success",
+        title: "Success",
+        message: t("Seller.successUpdate"),
+        onConfirm: () => router.push("/seller")
+      });
     } catch (err: any) {
-      alert(t("Seller.errorUpdate") + ": " + (err.message || ""));
+      showModal({
+        type: "error",
+        title: "Error Updating",
+        message: t("Seller.errorUpdate") + ": " + (err.message || ""),
+      });
       setLoading(false);
     }
   };
