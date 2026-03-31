@@ -25,9 +25,10 @@ AutoParts-Hub/
 │   ├── public/               # Static assets (images, localized categories, UI)
 │   ├── src/
 │   │   ├── app/[locale]/     # Dynamic routing for i18n
-│   │   ├── components/       # Reusable React components (Navbar, Cards, LanguageSwitcher)
+│   │   ├── components/       # Reusable React components (Navbar, Cards, ui/Skeleton, ui/Modal)
+│   │   ├── context/          # Globally provided state context (ModalContext, AuthContext)
 │   │   ├── i18n/             # next-intl configuration and routing
-│   │   ├── lib/              # API clients and utility functions
+│   │   ├── lib/              # API clients and utility functions (api.ts, apiFormData)
 │   │   ├── messages/         # i18n JSON dictionaries (en.json, ar.json)
 │   │   └── types/            # TypeScript interfaces
 │   ├── next.config.ts        # Next.js and next-intl plugin config
@@ -40,7 +41,7 @@ AutoParts-Hub/
 - `/[locale]/search` - **Search & Browse**: Product search with filters.
 - `/[locale]/products/[id]` - **Product Details**: Specific part details, reviews, add to cart.
 - `/[locale]/checkout` - **Checkout**: Cart review and order placement.
-- `/[locale]/profile` - **User Profile**: Order history and account settings.
+- `/[locale]/profile` - **User Profile**: Order history, robust avatar uploads, and account settings.
 - `/[locale]/seller` - **Seller Dashboard**: Manage products, view sales and statistics.
 - `/[locale]/admin` - **Admin Panel**: Manage users, orders, and site data.
 - `/[locale]/auth/login` - **Login**: User authentication.
@@ -51,6 +52,10 @@ AutoParts-Hub/
 - **Search & Filtering**: Query and browse items by compatibility, condition, and category.
 - **Cart & Checkout**: Flexible session-based and database-synced shopping cart.
 - **Multi-Role User System**: Buyers, Sellers (can list parts), Admins (can manage platform).
+- **LinkedIn-Style Profile Pages**: Enhanced dashboards allowing avatar uploads and integrated order history.
+- **Global Professional Modal System**: Custom Context-driven UI intercepting dangerous actions replacing legacy browser alerts.
+- **Responsive Skeleton Loaders**: Premium shimmer wireframes across Seller, Profile, and Product pages for seamless async transitions.
+- **Robust Image Galleries**: Fixed aspect-ratio galleries seamlessly handling single and parallel image uploads without crop-distortion.
 - **Reviews**: Product rating and collaborative feedback system.
 - **Seller Dashboard**: Dedicated UI for sellers to process orders and list inventory.
 - **Responsive Design**: Mobile-first grid layouts built on Tailwind CSS.
@@ -74,7 +79,7 @@ AutoParts-Hub/
 
 ## 8. API Endpoints
 All endpoints are strictly affixed to the `/api` prefix.
-- **Auth**: `POST /auth/login/`, `POST /auth/register/`, `GET /auth/me/`
+- **Auth**: `POST /auth/login/`, `POST /auth/register/`, `GET /auth/me/`, `PATCH /auth/update_profile/`
 - **Categories**: `GET /categories/`, `GET /categories/<slug>/`
 - **Products**: `GET /products/`, `GET /products/<id>/`, `GET /products/featured/`, `GET /products/latest/`, `POST /products/`, `PATCH /products/<id>/`, `DELETE /products/<id>/`
 - **Reviews**: `GET /products/<id>/reviews/`, `POST /products/<id>/reviews/`
@@ -114,8 +119,8 @@ All endpoints are strictly affixed to the `/api` prefix.
 4. Visit `http://localhost:3000`
 
 ## 12. Current Status
-- **Done**: Core frontend and backend architecture, authentication, product browsing layouts, core dynamic routing maps, and complete English/Arabic `next-intl` localization.
-- **In Progress**: Enhancing interactive UI data flows.
+- **Done**: Core frontend and backend architecture, authentication, product browsing layouts, complete English/Arabic `next-intl` localization, LinkedIn-style profile dashboards, and Global Modal integrations.
+- **In Progress**: Enhancing interactive UI data flows and optimizing media buckets.
 - **Planned**: Integrating Stripe checkout gateways and configuring Next.js robust image optimization loaders.
 
 ## 13. Known Issues / Challenges

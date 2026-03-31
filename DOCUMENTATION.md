@@ -45,16 +45,16 @@ frontend/
 │   │   │   ├── admin/      # Admin dashboards & analytics
 │   │   │   ├── auth/       # Login, Registration, and Google Profile Completion
 │   │   │   ├── checkout/   # Cart review and order finalization flows
-│   │   │   ├── products/   # Product detail pages (PDP)
-│   │   │   ├── profile/    # Buyer settings and password management
+│   │   │   ├── products/   # Product detail pages (PDP) with loading.tsx Skeletons
+│   │   │   ├── profile/    # LinkedIn-style dashboard with Avatar upload and loading.tsx
 │   │   │   ├── search/     # URL-driven advanced search & filter pages
-│   │   │   ├── seller/     # Seller dashboard, inventory CRUD operations
-│   │   │   ├── layout.tsx  # Root Layout (Google Provider, Auth Provider, i18n wrapping)
+│   │   │   ├── seller/     # Seller dashboard, inventory CRUD operations, and loading.tsx
+│   │   │   ├── layout.tsx  # Root Layout (Google Provider, Auth Provider, Modal Provider, i18n)
 │   │   │   └── page.tsx    # Landing page (hero, latest products, featured categories)
-│   ├── components/         # Reusable UI elements (Navbar, Buttons, ProductCards, Pagination)
-│   ├── context/            # React Contexts (AuthContext.tsx, CartContext.tsx)
+│   ├── components/         # Reusable UI elements (Navbar, ProductCards, ui/Skeleton, ui/Modal)
+│   ├── context/            # React Contexts (AuthContext.tsx, CartContext.tsx, ModalContext.tsx)
 │   ├── i18n/               # next-intl configuration and routing dictionaries
-│   ├── lib/                # Shared utilities (api.ts for Fetch wrapping, formatters)
+│   ├── lib/                # Shared utilities (api.ts for Fetch wrapping, apiFormData)
 │   ├── messages/           # JSON translation dictionaries (en.json, ar.json)
 │   ├── middleware.ts       # Edge middleware managing redirects, protected routes, and locale detection
 │   └── types/              # TypeScript global interface definitions (index.ts)
@@ -113,9 +113,19 @@ The search architecture relies intensely on browser URLs parameters avoiding fra
 - **Pagination Context:** Controlled exclusively via URL pointers (`?page=2`).
 
 ### e. Image Upload System
-1. The frontend utilizes `<input type="file" multiple />` passing `File` objects inside an appended `FormData()` package.
+1. The frontend utilizes `<input type="file" multiple />` passing `File` objects inside an appended `FormData()` package using `apiFormData` utility wrapper.
 2. Django’s `ProductViewSet.perform_create()` receives the media array `request.FILES.getlist("images")` looping through Cloudinary payload deployments. 
 3. Cloudinary assigns randomized hashes to each image instantly generating a CDN HTTP link written to the `ProductImage` database table.
+4. Single images or multiple galleries are properly mapped back to the client via `object-contain` classes ensuring zero distortion.
+
+### f. Structural Skeleton Loaders
+To simulate advanced Single Page Application (SPA) loading structures natively within App Router paradigms, all major components rely on a custom `<Skeleton />` building block. 
+These are wired directly into App Router `loading.tsx` file paths (`/profile`, `/products/[id]`, `/seller`), as well as securely bridged into `use client` effect loaders overriding traditional HTTP buffering spinners with shimmer wireframes rendering instantly.
+
+### g. Global Modal System
+All legacy browser-blocking calls (`window.alert` and `window.confirm`) have been systematically replaced by a global generic modal API (`ModalContext.tsx`).
+- Components invoke `const { showModal } = useModal()` triggering `success`, `error`, `warning`, or `confirm` UI blocks dynamically.
+- Deletions run asynchronously optimizing backend sync operations via callback handlers (`onConfirm`).
 
 ---
 
@@ -126,6 +136,7 @@ The search architecture relies intensely on browser URLs parameters avoiding fra
 #### Auth
 - `POST /auth/register/` -> Registers local user, sets HttpOnly cookie array, returns `{ access, user }`
 - `POST /auth/login/` -> Verifies email & password.
+- `PATCH /auth/update_profile/` -> Ingests `multipart/form-data` safely executing Django Model updates for Avatar and Address properties concurrently.
 - `POST /auth/refresh/` -> Reads header cookie, emits active Token payload without login requirement.
 - `POST /auth/logout/` -> Destroys server cookies terminating active session lifecycle.
 - `POST /auth/google/` -> Intercepts Google ID token providing either an active token sequence or a `temp_token` trigger.
