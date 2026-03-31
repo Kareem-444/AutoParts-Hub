@@ -10,6 +10,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ModalProvider } from "@/context/ModalContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import AIAssistantWidget from "@/components/AIAssistant/AIAssistantWidget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -63,6 +64,7 @@ export default async function RootLayout({
             </AuthProvider>
           </GoogleOAuthProvider>
         </NextIntlClientProvider>
+        <AIAssistantWidget locale={locale as "en" | "ar"} />
       </body>
     </html>
   );
