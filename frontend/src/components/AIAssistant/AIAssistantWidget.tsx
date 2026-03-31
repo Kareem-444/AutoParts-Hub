@@ -192,7 +192,7 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
     }, 200);
   };
 
-  /* ── Send message ───────────────────────────────────────────────────────── */
+  /* ── Send message (with retry for rate-limits) ──────────────────────────── */
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
@@ -209,60 +209,96 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
     setIsLoading(true);
 
     try {
-      // Build conversation history for multi-turn (Gemini uses "model" instead of "assistant")
-      const geminiContents = [...messages, userMsg]
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        }));
+      // Build conversation history (OpenAI-compatible format for Groq)
+      const chatMessages = [
+        { role: "system" as const, content: buildSystemPrompt(pathname) },
+        ...[...messages, userMsg]
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          })),
+      ];
 
-      // TODO: Replace with production AI endpoint via NEXT_PUBLIC_AI_API_URL
-      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            system_instruction: {
-              parts: [{ text: buildSystemPrompt(pathname) }],
+      const groqApiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY || "";
+      const requestUrl = "https://api.groq.com/openai/v1/chat/completions";
+      const requestBody = JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: chatMessages,
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+
+      // Retry with exponential backoff for 429 rate-limit errors
+      const MAX_RETRIES = 3;
+      let lastError: Error | null = null;
+      let wasRateLimited = false;
+
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const response = await fetch(requestUrl, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${groqApiKey}`,
+              "Content-Type": "application/json",
             },
-            contents: geminiContents,
-          }),
+            body: requestBody,
+          });
+
+          if (response.status === 429) {
+            wasRateLimited = true;
+            const backoffMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+            console.warn(`Aria: rate-limited (429), retrying in ${backoffMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            continue;
+          }
+
+          if (!response.ok) throw new Error(`API ${response.status}`);
+
+          const data = await response.json();
+          const assistantContent =
+            data.choices?.[0]?.message?.content ??
+            "I couldn't generate a response.";
+
+          const assistantMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: assistantContent,
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMsg]);
+
+          // Increment unread if panel is closed
+          if (!isOpen || isMinimized) {
+            setUnreadCount((c) => c + 1);
+          }
+          return; // Success — exit early
+        } catch (innerErr) {
+          lastError = innerErr instanceof Error ? innerErr : new Error(String(innerErr));
+          // Only retry on 429 (handled via continue above); all other errors break immediately
+          if (!wasRateLimited) break;
         }
-      );
-
-      if (!response.ok) throw new Error(`API ${response.status}`);
-
-      const data = await response.json();
-      const assistantContent =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ??
-        "I couldn't generate a response.";
-
-      const assistantMsg: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: assistantContent,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMsg]);
-
-      // Increment unread if panel is closed
-      if (!isOpen || isMinimized) {
-        setUnreadCount((c) => c + 1);
       }
+
+      // All retries exhausted or non-retryable error
+      throw lastError ?? new Error("Request failed");
     } catch (err) {
       console.error("Aria chat error:", err);
+
+      const isRateLimit = err instanceof Error && err.message?.includes("429");
+      // If we got here after retries exhausted, wasRateLimited context is lost,
+      // so also check if the error string mentions 429 or we simply show a rate-limit message
       const errorMsg: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: isRtl
-          ? "عذراً، أواجه مشكلة في الاتصال. يرجى المحاولة مرة أخرى."
-          : "Sorry, I'm having trouble connecting. Please try again.",
+        content: isRateLimit || (err instanceof Error && /rate/i.test(err.message))
+          ? isRtl
+            ? "⏳ لقد تجاوزت حد الطلبات المسموح به. يرجى الانتظار بضع ثوانٍ ثم المحاولة مرة أخرى."
+            : "⏳ Rate limit reached. Please wait a few seconds and try again."
+          : isRtl
+            ? "عذراً، أواجه مشكلة في الاتصال. يرجى المحاولة مرة أخرى."
+            : "Sorry, I'm having trouble connecting. Please try again.",
         timestamp: new Date(),
         isError: true,
       };
