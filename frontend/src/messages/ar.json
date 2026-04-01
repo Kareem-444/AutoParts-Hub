@@ -18,7 +18,8 @@
     "myProfile": "ملفي الشخصي",
     "browse": "تصفح",
     "browseAllParts": "تصفح جميع القطع",
-    "adminPanel": "لوحة الإدارة"
+    "adminPanel": "لوحة الإدارة",
+    "messages": "الرسائل"
   },
   "Home": {
     "heroTitle": "ابحث عن القطعة المثالية لمركبتك.",

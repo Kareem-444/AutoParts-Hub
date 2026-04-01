@@ -18,7 +18,8 @@
     "myProfile": "My Profile",
     "browse": "Browse",
     "browseAllParts": "Browse All Parts",
-    "adminPanel": "Admin Panel"
+    "adminPanel": "Admin Panel",
+    "messages": "Messages"
   },
   "Home": {
     "heroTitle": "Find the perfect part for your vehicle.",
