@@ -25,7 +25,13 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
 )
 
+from django.http import JsonResponse
+
 User = get_user_model()
+
+def health_check(request):
+    """Simple health check endpoint for deployment platforms."""
+    return JsonResponse({"status": "ok"}, status=200)
 
 # Cookie settings for the refresh token
 REFRESH_COOKIE_KEY = "refresh_token"
