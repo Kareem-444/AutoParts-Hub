@@ -1,136 +1,101 @@
-# AutoParts Hub: Comprehensive Project Documentation
+# 🚗 AutoParts Hub — Modern Automotive Marketplace
 
-## 1. Project Overview
-- **Name**: AutoParts Hub
-- **Description**: A full-stack e-commerce marketplace dedicated to car spare parts. It connects buyers with trusted sellers worldwide, offering original equipment manufacturer (OEM) and aftermarket products.
-- **Purpose**: To provide a seamless, localized (English and Arabic), and secure platform for purchasing and selling auto parts.
-- **Target Audience**: Car owners, mechanics, and auto parts retailers.
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Django](https://img.shields.io/badge/Django-5.1-092e20)](https://www.djangoproject.com/)
+[![WebSockets](https://img.shields.io/badge/WebSockets-Enabled-blue)](https://channels.readthedocs.io/)
+[![Groq](https://img.shields.io/badge/AI_Assistant-Aria-orange)](https://groq.com/)
 
-## 2. Tech Stack
-- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS v4, TypeScript, `next-intl` (for i18n).
-- **Backend**: Python 3.12, Django, Django REST Framework, Django Channels (WebSockets), Daphne.
-- **Database**: SQLite (currently used for development, easily configurable to PostgreSQL).
-- **Authentication**: JWT (JSON Web Token) with secure HttpOnly cookies and Google OAuth.
-- **Deploy/Hosting**: TBD (Vercel/Netlify for frontend, Heroku/AWS/Render for backend).
+**AutoParts Hub** is a feature-rich, high-performance marketplace designed specifically for car spare parts. It bridges the gap between individual sellers, professional dealers, and car owners through a seamless, multilingual, and real-time experience.
 
-## 3. Project Structure
-```text
-AutoParts-Hub/
-├── backend/                  # Django Backend
-│   ├── api/                  # Main Django app: logic, models, serializers, views, consumers, routing
-│   ├── config/               # Django root: settings, asgi (Channels), urls
-│   ├── manage.py             # Django execution script
-│   └── requirements.txt      # Python dependencies (includes channels, daphne)
-├── frontend/                 # Next.js Frontend
-│   ├── public/               # Static assets (images, localized categories, UI)
-│   ├── src/
-│   │   ├── app/[locale]/     # Dynamic routing for i18n
-│   │   ├── components/       # Reusable React components (Navbar, ChatSidePanel, Footer, ui/)
-│   │   ├── context/          # Globally provided state context (Auth, Cart, Modal)
-│   │   ├── i18n/             # next-intl configuration and routing
-│   │   ├── lib/              # API clients and utilities (api.ts, imageUtils)
-│   │   ├── messages/         # i18n JSON dictionaries (en.json, ar.json)
-│   │   └── types/            # TypeScript interfaces
-│   ├── next.config.ts        # Next.js and next-intl plugin config
-│   └── package.json          # Node dependencies
-└── README.md                 # Project Documentation
+---
+
+## 🌟 Key Features
+
+### 🛒 High-Performance Commerce
+- **Advanced Search & Filtering**: URL-driven search allowing instantaneous filtering by category, car make, model, year, and condition.
+- **Global Cart & Checkout**: Secure shopping cart system with localized checkout and order history.
+- **Seller Dashboard**: Comprehensive tools for sellers to list products, upload multiple images via Cloudinary, and track store statistics.
+
+### 💬 Real-Time Interaction
+- **Instant Chat**: WebSocket-powered messaging between buyers and sellers directly on the platform.
+- **Notification System**: Live unread message badges integrated into the navbar and dashboard.
+- **Aria AI Assistant**: Your intelligent automotive support agent, powered by Groq (Llama 3.3). Aria provides context-aware guidance and multilingual support.
+
+### 🔐 Secure & Modern Core
+- **Dual Authentication**: Local email/password + Google OAuth 2.0 with intermediate profile completion.
+- **Secure JWT Flow**: Token-based authentication using **HttpOnly cookies** for refresh-token rotation (zero localStorage risk).
+- **Internationalization (i18n)**: Full English (LTR) and Arabic (RTL) support with automatic locale detection and layout shifting.
+- **Premium UI/UX**: Shimmer skeleton loaders for every dynamic page, global modal system for alerts/confirmations, and a fully responsive dark-themed aesthetic.
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | Next.js 15, React 19, TypeScript, Tailwind CSS v4, next-intl, Framer Motion |
+| **Backend** | Django 5.1, Django REST Framework, Django Channels 4.0, Daphne (ASGI) |
+| **Database** | SQLite (Development) / PostgreSQL (Production) |
+| **Storage** | Cloudinary (CDN for images & avatars) |
+| **Real-Time** | WebSockets via Django Channels & InMemoryChannelLayer |
+| **AI** | Groq Cloud API (Llama 3.3 70B Versatile) |
+| **Auth** | SimpleJWT (HttpOnly rotation), Google OAuth v2 |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.12+
+- Node.js 18+
+- Cloudinary Account (for images)
+- Google Cloud Project (for OAuth)
+
+### 1. Backend Setup
+```bash
+cd backend
+python -m venv venv
+# Windows: venv\Scripts\activate | Unix: source venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
 ```
 
-## 4. Pages & Routes
-- `/[locale]/` - **Home**: Featured products, latest additions, categories overview.
-- `/[locale]/search` - **Search & Browse**: Product search with filters.
-- `/[locale]/products/[id]` - **Product Details**: Specific part details, reviews, add to cart.
-- `/[locale]/checkout` - **Checkout**: Cart review and order placement.
-- `/[locale]/profile` - **User Profile**: Order history, robust avatar uploads, and account settings.
-- `/[locale]/seller` - **Seller Dashboard**: Manage products, view sales and statistics.
-- `/[locale]/admin` - **Admin Panel**: Manage users, orders, and site data.
-- `/[locale]/auth/login` - **Login**: User authentication.
-- `/[locale]/auth/register` - **Register**: New user and seller onboarding.
-- `/[locale]/messages` - **Messages Inbox**: Real-time chat list and active conversations.
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## 5. Features
-- **Internationalization**: Full AR/EN RTL/LTR support natively via `next-intl`.
-- **Search & Filtering**: Query and browse items by compatibility, condition, and category.
-- **Cart & Checkout**: Flexible session-based and database-synced shopping cart.
-- **Real-time Buyer-Seller Chat**: Secure WebSocket-based messaging system with unread notifications.
-- **Custom Google OAuth**: Fully translatable Google login flow with custom UI and profile completion.
-- **LinkedIn-Style Profile Pages**: Enhanced dashboards allowing avatar uploads and integrated order history.
-- **Global Professional Modal System**: Custom Context-driven UI intercepting dangerous actions replacing legacy browser alerts.
-- **Responsive Skeleton Loaders**: Premium shimmer wireframes across Seller, Profile, and Product pages for seamless async transitions.
-- **Robust Image Galleries**: Fixed aspect-ratio galleries seamlessly handling single and parallel image uploads without crop-distortion.
-- **Full Multilingual Localization**: Complete RTL/LTR support for all UI elements (Navbar, Footer, Product Cards).
-- **Reviews**: Product rating and collaborative feedback system.
-- **Seller Dashboard**: Dedicated UI for sellers to process orders and list inventory.
-- **Responsive Design**: Mobile-first grid layouts built on Tailwind CSS.
+---
 
-## 6. Database Schema
-- **User**: `AbstractUser` extension with `is_seller`, `phone`, `address`, `avatar`.
-- **Category**: Hierarchical categories (`parent` relation for sub-categories).
-- **Product**: Spare part listing (`car_make`, `car_model`, `car_year`, `condition`, `stock`, `price`), linked to Category and User (Seller).
-- **ProductImage**: Multiple images per Product.
-- **Review**: Star rating (`1-5`) and comment, linked to Product and User.
-- **Cart & CartItem**: Temporary holding object for user purchases.
-- **Order & OrderItem**: Completed purchases capturing dynamic state and price snapshots.
-- **SellerProfile**: Store name, description, and logo context.
-- **Conversation & Message**: Real-time chat threads and messaging history.
-
-## 7. Authentication & Authorization
-- **Method**: DRF Token Authentication. Tokens are stored in the browser's `localStorage` and sent actively over the `Authorization: Token <token>` header.
-- **Roles**:
-  - **Buyer**: Can browse, add to cart, write reviews, and checkout.
-  - **Seller**: Can do everything a buyer does + `is_seller=True` enables access to the Seller Dashboard for creating products and managing store orders.
-  - **Admin**: `is_staff=True` grants access to platform metrics, user management, and core database administration.
-
-## 8. API Endpoints
-All endpoints are strictly affixed to the `/api` prefix.
-- **Auth**: `POST /auth/login/`, `POST /auth/register/`, `GET /auth/me/`, `PATCH /auth/update_profile/`
-- **Categories**: `GET /categories/`, `GET /categories/<slug>/`
-- **Products**: `GET /products/`, `GET /products/<id>/`, `GET /products/featured/`, `GET /products/latest/`, `POST /products/`, `PATCH /products/<id>/`, `DELETE /products/<id>/`
-- **Reviews**: `GET /products/<id>/reviews/`, `POST /products/<id>/reviews/`
-- **Cart**: `GET /cart/`, `POST /cart/add_item/`, `POST /cart/update_item/`, `POST /cart/remove_item/`, `POST /cart/clear/`
-- **Orders**: `GET /orders/`, `GET /orders/<id>/`, `POST /orders/`
-- **Chat**: `GET /chat/conversations/`, `GET /chat/conversations/<id>/messages/`
-- **Seller**: `GET /seller/`, `GET /seller/dashboard/`, `GET /seller/orders/`
-- **Admin**: `GET /admin/users/`, `GET /admin/orders/`, `PATCH /admin/orders/<id>/`
-
-## 9. Third-party Integrations
-- *(Currently none implemented)*. Future integrations pipeline includes payment gateways (Stripe/PayPal), and scalable cloud media hosting solutions (AWS S3/Cloudinary).
-
-## 10. Environment Variables
-### Frontend (`frontend/.env.local`)
-- `NEXT_PUBLIC_API_URL`
+## 📋 Environment Variables
 
 ### Backend (`backend/.env`)
-- `SECRET_KEY`
-- `DEBUG`
-- `ALLOWED_HOSTS`
-- `DATABASE_URL` (Optional hook for PostgreSQL deployment)
+```bash
+SECRET_KEY=your-django-secret
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+GOOGLE_CLIENT_ID=your-google-id
+GOOGLE_CLIENT_SECRET=your-google-secret
+```
 
-## 11. Installation & Setup
-### Backend Setup
-1. `cd backend`
-2. Create Python virtual environment: `python -m venv venv`
-3. Activate:
-   - Windows: `venv\Scripts\activate` 
-   - Mac/Linux: `source venv/bin/activate`
-4. Install dependencies: `pip install -r requirements.txt`
-5. Migrate database: `python manage.py migrate`
-6. Run the server: `python manage.py runserver`
+### Frontend (`frontend/.env.local`)
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-id
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
+NEXT_PUBLIC_GROQ_API_KEY=your-groq-key (Aria Assistant)
+```
 
-### Frontend Setup
-1. `cd frontend`
-2. Install dependencies: `npm install`
-3. Start development server: `npm run dev`
-4. Visit `http://localhost:3000`
+---
 
-## 12. Current Status
-- **Done**: Core frontend and backend architecture, authentication, product browsing layouts, complete English/Arabic `next-intl` localization, LinkedIn-style profile dashboards, and Global Modal integrations.
-- **In Progress**: Enhancing interactive UI data flows and optimizing media buckets.
-- **Planned**: Integrating Stripe checkout gateways and configuring Next.js robust image optimization loaders.
+## 🔒 Security Note
+This project implements **HttpOnly Cookie-based JWT rotation**. The `refresh_token` is never accessible via JavaScript, preventing XSS-based token theft. Authorization is handled via an ephemeral in-memory `access_token`.
 
-## 13. Known Issues / Challenges
-- Media serving currently leans on the dev Django server handler. Transitioning to scalable bucket pipelines is necessary to optimize production delivery.
-- Token context relies on client-side JS `localStorage`. Shifting to Server `HttpOnly` cookie-based JWTs will dramatically strengthen security posture against XSS exploits.
+---
 
-## 14. Screenshots
-> *(Screenshots to be added showing the Home Page, Arabic localized RTL View, and Checkout Cart processes).*
+## 📄 License
+This project is licensed under the MIT License.
