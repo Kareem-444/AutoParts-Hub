@@ -48,7 +48,12 @@
     "hurryLeft": "أسرع! تبقى {stock} فقط في المخزن.",
     "productNotFound": "المنتج غير موجود",
     "goBack": "العودة",
-    "partCode": "رمز القطعة"
+    "partCode": "رمز القطعة",
+    "chatWithSeller": "تحدث مع البائع",
+    "vehicleFitment": "ملاءمة السيارة",
+    "soldBy": "تم البيع بواسطة",
+    "freeShipping": "شحن مجاني",
+    "universal": "عالمي"
   },
   "Checkout": {
     "title": "الدفع",

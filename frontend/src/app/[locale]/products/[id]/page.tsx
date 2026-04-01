@@ -197,7 +197,7 @@ export default function ProductDetailPage() {
           <div className="mb-8">
             <div className="flex flex-col">
               <span className="text-4xl font-extrabold text-primary">${Number(product.price).toFixed(2)}</span>
-              <span className="text-sm text-text-light mt-1">+ Free Shipping</span>
+              <span className="text-sm text-text-light mt-1">+ {t("freeShipping") || "Free Shipping"}</span>
             </div>
           </div>
 
@@ -209,9 +209,9 @@ export default function ProductDetailPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-text">Vehicle Fitment</h3>
+                <h3 className="font-semibold text-text">{t("vehicleFitment") || "Vehicle Fitment"}</h3>
                 <p className="text-sm text-text-muted">
-                  {product.car_make || "Universal"} {product.car_model} {product.car_year && `(${product.car_year})`}
+                  {product.car_make || t("universal") || "Universal"} {product.car_model} {product.car_year && `(${product.car_year})`}
                 </p>
               </div>
             </div>
@@ -223,7 +223,7 @@ export default function ProductDetailPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-text">Sold by</h3>
+                  <h3 className="font-semibold text-text">{t("soldBy") || "Sold by"}</h3>
                   <p className="text-sm text-text-muted">
                     {product.seller_profile?.store_name || product.seller_name}
                   </p>

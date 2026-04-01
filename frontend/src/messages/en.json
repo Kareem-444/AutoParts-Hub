@@ -48,7 +48,12 @@
     "hurryLeft": "Hurry! Only {stock} left in stock.",
     "productNotFound": "Product Not Found",
     "goBack": "Go Back",
-    "partCode": "Part Code"
+    "partCode": "Part Code",
+    "chatWithSeller": "Chat with Seller",
+    "vehicleFitment": "Vehicle Fitment",
+    "soldBy": "Sold by",
+    "freeShipping": "Free Shipping",
+    "universal": "Universal"
   },
   "Checkout": {
     "title": "Checkout",
