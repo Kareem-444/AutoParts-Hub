@@ -8,27 +8,27 @@
 
 ## 2. Tech Stack
 - **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS v4, TypeScript, `next-intl` (for i18n).
-- **Backend**: Python 3.12, Django, Django REST Framework.
+- **Backend**: Python 3.12, Django, Django REST Framework, Django Channels (WebSockets), Daphne.
 - **Database**: SQLite (currently used for development, easily configurable to PostgreSQL).
-- **Authentication**: Token-based authentication (Django REST Framework Auth Token).
+- **Authentication**: JWT (JSON Web Token) with secure HttpOnly cookies and Google OAuth.
 - **Deploy/Hosting**: TBD (Vercel/Netlify for frontend, Heroku/AWS/Render for backend).
 
 ## 3. Project Structure
 ```text
 AutoParts-Hub/
 ├── backend/                  # Django Backend
-│   ├── api/                  # Main Django app containing logic, models, serializers, views
-│   ├── config/               # Django root settings and URLs
+│   ├── api/                  # Main Django app: logic, models, serializers, views, consumers, routing
+│   ├── config/               # Django root: settings, asgi (Channels), urls
 │   ├── manage.py             # Django execution script
-│   └── requirements.txt      # Python dependencies
+│   └── requirements.txt      # Python dependencies (includes channels, daphne)
 ├── frontend/                 # Next.js Frontend
 │   ├── public/               # Static assets (images, localized categories, UI)
 │   ├── src/
 │   │   ├── app/[locale]/     # Dynamic routing for i18n
-│   │   ├── components/       # Reusable React components (Navbar, Cards, ui/Skeleton, ui/Modal)
-│   │   ├── context/          # Globally provided state context (ModalContext, AuthContext)
+│   │   ├── components/       # Reusable React components (Navbar, ChatSidePanel, Footer, ui/)
+│   │   ├── context/          # Globally provided state context (Auth, Cart, Modal)
 │   │   ├── i18n/             # next-intl configuration and routing
-│   │   ├── lib/              # API clients and utility functions (api.ts, apiFormData)
+│   │   ├── lib/              # API clients and utilities (api.ts, imageUtils)
 │   │   ├── messages/         # i18n JSON dictionaries (en.json, ar.json)
 │   │   └── types/            # TypeScript interfaces
 │   ├── next.config.ts        # Next.js and next-intl plugin config
@@ -46,16 +46,19 @@ AutoParts-Hub/
 - `/[locale]/admin` - **Admin Panel**: Manage users, orders, and site data.
 - `/[locale]/auth/login` - **Login**: User authentication.
 - `/[locale]/auth/register` - **Register**: New user and seller onboarding.
+- `/[locale]/messages` - **Messages Inbox**: Real-time chat list and active conversations.
 
 ## 5. Features
 - **Internationalization**: Full AR/EN RTL/LTR support natively via `next-intl`.
 - **Search & Filtering**: Query and browse items by compatibility, condition, and category.
 - **Cart & Checkout**: Flexible session-based and database-synced shopping cart.
-- **Multi-Role User System**: Buyers, Sellers (can list parts), Admins (can manage platform).
+- **Real-time Buyer-Seller Chat**: Secure WebSocket-based messaging system with unread notifications.
+- **Custom Google OAuth**: Fully translatable Google login flow with custom UI and profile completion.
 - **LinkedIn-Style Profile Pages**: Enhanced dashboards allowing avatar uploads and integrated order history.
 - **Global Professional Modal System**: Custom Context-driven UI intercepting dangerous actions replacing legacy browser alerts.
 - **Responsive Skeleton Loaders**: Premium shimmer wireframes across Seller, Profile, and Product pages for seamless async transitions.
 - **Robust Image Galleries**: Fixed aspect-ratio galleries seamlessly handling single and parallel image uploads without crop-distortion.
+- **Full Multilingual Localization**: Complete RTL/LTR support for all UI elements (Navbar, Footer, Product Cards).
 - **Reviews**: Product rating and collaborative feedback system.
 - **Seller Dashboard**: Dedicated UI for sellers to process orders and list inventory.
 - **Responsive Design**: Mobile-first grid layouts built on Tailwind CSS.
@@ -67,8 +70,9 @@ AutoParts-Hub/
 - **ProductImage**: Multiple images per Product.
 - **Review**: Star rating (`1-5`) and comment, linked to Product and User.
 - **Cart & CartItem**: Temporary holding object for user purchases.
-- **Order & OrderItem**: Completed purchases capturing dynamic state info (`pending`, `shipped`, `delivered`), and snapshot of purchase price.
+- **Order & OrderItem**: Completed purchases capturing dynamic state and price snapshots.
 - **SellerProfile**: Store name, description, and logo context.
+- **Conversation & Message**: Real-time chat threads and messaging history.
 
 ## 7. Authentication & Authorization
 - **Method**: DRF Token Authentication. Tokens are stored in the browser's `localStorage` and sent actively over the `Authorization: Token <token>` header.
@@ -85,7 +89,8 @@ All endpoints are strictly affixed to the `/api` prefix.
 - **Reviews**: `GET /products/<id>/reviews/`, `POST /products/<id>/reviews/`
 - **Cart**: `GET /cart/`, `POST /cart/add_item/`, `POST /cart/update_item/`, `POST /cart/remove_item/`, `POST /cart/clear/`
 - **Orders**: `GET /orders/`, `GET /orders/<id>/`, `POST /orders/`
-- **Seller**: `GET /seller/`, `GET /seller/products/`, `GET /seller/orders/`
+- **Chat**: `GET /chat/conversations/`, `GET /chat/conversations/<id>/messages/`
+- **Seller**: `GET /seller/`, `GET /seller/dashboard/`, `GET /seller/orders/`
 - **Admin**: `GET /admin/users/`, `GET /admin/orders/`, `PATCH /admin/orders/<id>/`
 
 ## 9. Third-party Integrations

@@ -20,7 +20,8 @@ Welcome to the **AutoParts Hub** documentation! This guide serves as a comprehen
 **Frontend/Backend Separation:**
 The project follows a decoupled monolithic API pattern.
 - **Frontend (`/frontend`):** Built with Next.js 15 (App Router), leveraging React Server Components, TypeScript, and Tailwind CSS v4. It manages all UI rendering, internationalization (i18n), state management (Context API), and client-side routing.
-- **Backend (`/backend`):** A Python 3.12 Django application exposing a RESTful API via Django REST Framework (DRF). It processes business logic, handles ORM database writes (SQLite locally, PostgreSQL ready), media uploads (via Cloudinary), and issues HTTP-only JSON Web Tokens (JWT).
+- **Backend (`/backend`):** A Python 3.12 Django application exposing a RESTful API via Django REST Framework (DRF) and real-time capabilities via **Django Channels** and **Daphne**. It handles business logic, ORM database writes, media uploads (via Cloudinary), and issues JWTs.
+- **Real-Time Communication:** Facilitated by WebSockets through Django Channels, allowing instantaneous messaging between buyers and sellers without page refreshes.
 
 **API Communication Flow:**
 1. The frontend invokes an API route using a unified HTTP client (`src/lib/api.ts`).
@@ -70,7 +71,9 @@ backend/
 ├── api/                    # Core Django application handling all marketplace features
 │   ├── models.py           # Database entities (User, Product, Category, Order, Profile)
 │   ├── serializers.py      # DRF parsing (ModelSerializers for Read/Write flows)
-│   ├── views.py            # API logic and ViewSets (AuthViewSet, ProductViewSet)
+│   ├── views.py            # API logic and ViewSets (Auth, Product, Chat)
+│   ├── consumers.py        # WebSocket consumers for real-time chat
+│   ├── routing.py          # WebSocket URL routing
 │   ├── urls.py             # Route configuration tied to ViewSets via DefaultRouter
 │   └── admin.py            # Django built-in admin panel registrations for models
 ├── manage.py               # Django execution script
@@ -90,17 +93,26 @@ backend/
 DRF issues a JWT via `rest_framework_simplejwt`. To mitigate XSS vulnerabilities, the `refresh_token` is injected directly into an HttpOnly, SameSite=Lax cookie from the Django response. The frontend extracts the `access_token` and sustains it purely within React Context (`AuthContext`). Refreshes happen silently via iframe/fetch every 13 minutes.
 
 **Google OAuth:**
-Powered by `@react-oauth/google` on the frontend combined with `social-auth-app-django`/`google-auth` on the backend.
-1. User clicks the customized Google Login button.
-2. Frontend sends the Google `credential` payload (`POST /api/auth/google/`). 
-3. Backend unpacks the Google certificate and validates the email signature.
-4. **Profile Completion Logic:** If the user is logging in for the first time, Django returns a signed `temp_token` with `status: "profile_incomplete"`. The frontend traps this condition, persisting data in `sessionStorage`, and navigates to the `/auth/complete-profile/` page to finalize username layout and roles.
+Powered by `@react-oauth/google` on the frontend combined with a custom backend adapter in `api/views.py`.
+1. User clicks the customized Google Login button (fully localized and styled).
+2. Frontend triggers the `useGoogleLogin` hook, obtaining an `access_token` from Google.
+3. Frontend sends this `access_token` to the backend (`POST /api/auth/google/`).
+4. Backend uses `urllib` to verify the token and retrieve user info.
+5. **Profile Completion Logic:** If the user is new, Django returns a signed `temp_token` with `status: "profile_incomplete"`. The frontend navigates to the `/auth/complete-profile/` page to finalize username and roles. Existing users are logged in immediately with a JWT set in cookies.
 
 ### b. i18n System
 Powered by `next-intl`.
 - **Pages Path:** All routes lie beneath `/app/[locale]/`. 
 - **Language Switcher:** Triggered via `<Link href={path} locale="ar">`.
-- **RTL Logic:** Based on the current locale, the `<html dir="rtl">` property transforms Tailwind's logical utilities (e.g., `ml-4` becomes `ms-4`, aligning left vs right dynamically).
+- **RTL Logic:** Based on the current locale, the `<html dir="rtl">` property transforms Tailwind's logical utilities (e.g., `ml-4` becomes `ms-4`).
+- **Complete Coverage:** All UI elements including the Navbar, Footer, Product Cards, and Search filters are fully translated and RTL-compatible.
+
+### c. Real-Time Chat System
+A WebSocket-powered messaging platform connecting buyers and sellers directly.
+- **Backend Consumer:** `ChatConsumer` in `api/consumers.py` handles WebSocket connections, authentication via JWT, and message persistence.
+- **Participants:** Each `Conversation` is uniquely tied to a `Buyer`, `Seller`, and a specific `Product`.
+- **Frontend Component:** `ChatSidePanel.tsx` provides a slide-out interface for active messaging.
+- **Inbox:** All conversations are centralized in the `/messages` page, with real-time unread notification badges integrated into the Navbar and Seller Dashboard.
 
 ### c. Seller Dashboard
 A restricted interface conditionally rendered if `user.is_seller` is true.
@@ -153,7 +165,12 @@ All legacy browser-blocking calls (`window.alert` and `window.confirm`) have bee
 - `GET /orders/` -> Extracts Order history exclusively visible to the owner.
 
 #### Seller API
-- `GET /seller/` -> Emits comprehensive JSON payload containing sales volume, product counts, and profile configurations targeting Dashboard statistics charts.
+- `GET /seller/dashboard/` -> Statistics and profile info for the dashboard.
+
+#### Chat API
+- `GET /chat/conversations/` -> Lists all active conversations for the authenticated user.
+- `GET /chat/conversations/<id>/messages/` -> Retrieves the message history for a specific conversation.
+- **WebSocket:** `ws/chat/<conversation_id>/` -> Real-time message exchange endpoint.
 
 ---
 
