@@ -26,6 +26,10 @@ router.register(r"seller", views.SellerDashboardViewSet, basename="seller")
 router.register(r"admin/users", views.AdminUserViewSet, basename="admin-user")
 router.register(r"admin/orders", views.AdminOrderViewSet, basename="admin-order")
 
+# Chat
+router.register(r"chat/conversations", views.ConversationViewSet, basename="chat-conversation")
+
+
 urlpatterns = [
     path("", include(router.urls)),
     # Nested reviews under a product: /api/products/<product_pk>/reviews/

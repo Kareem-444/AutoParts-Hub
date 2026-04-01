@@ -14,7 +14,11 @@
     "home": "Home",
     "products": "Products",
     "cart": "Shopping Cart",
-    "profile": "Profile"
+    "profile": "Profile",
+    "myProfile": "My Profile",
+    "browse": "Browse",
+    "browseAllParts": "Browse All Parts",
+    "adminPanel": "Admin Panel"
   },
   "Home": {
     "heroTitle": "Find the perfect part for your vehicle.",
@@ -123,5 +127,37 @@
     "previous": "Previous",
     "next": "Next",
     "apply": "Apply"
+  },
+  "chat": {
+    "open_chat": "Chat with Seller",
+    "send": "Send",
+    "placeholder": "Type a message...",
+    "messages": "Messages",
+    "no_conversations": "No conversations yet",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnected": "Disconnected"
+  },
+  "auth": {
+    "continue_with_google": "Continue with Google"
+  },
+  "Footer": {
+    "quickLinks": "Quick Links",
+    "browseParts": "Browse Parts",
+    "newParts": "New Parts",
+    "usedParts": "Used Parts",
+    "sellOnHub": "Sell on AutoParts Hub",
+    "categoriesTitle": "Categories",
+    "engineParts": "Engine Parts",
+    "brakeSystem": "Brake System",
+    "suspension": "Suspension",
+    "electrical": "Electrical",
+    "support": "Support",
+    "helpCenter": "Help Center",
+    "shippingInfo": "Shipping Info",
+    "returns": "Returns",
+    "contactUs": "Contact Us",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   }
 }

@@ -190,13 +190,27 @@ class AuthViewSet(viewsets.ViewSet):
     def google(self, request):
         """Verify Google token. If new user, return a temp token for profile completion."""
         credential = request.data.get("credential")
-        if not credential:
+        access_token = request.data.get("access_token")
+        
+        if not credential and not access_token:
             return Response({"error": "No credential provided"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            idinfo = id_token.verify_oauth2_token(
-                credential, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
-            )
+            if credential:
+                idinfo = id_token.verify_oauth2_token(
+                    credential, google_requests.Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+                )
+            else:
+                import urllib.request
+                import json
+                req = urllib.request.Request("https://www.googleapis.com/oauth2/v3/userinfo")
+                req.add_header("Authorization", f"Bearer {access_token}")
+                try:
+                    with urllib.request.urlopen(req) as response:
+                        idinfo = json.loads(response.read().decode())
+                except Exception:
+                    raise ValueError("Invalid access token")
+
             email = idinfo.get("email")
             
             # Check if user exists
@@ -571,3 +585,53 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAdminUser]
+
+
+# ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+from django.db.models import Q
+from .models import Conversation, Message
+from .serializers import ConversationSerializer, MessageSerializer
+
+class ConversationViewSet(viewsets.ModelViewSet):
+    serializer_class = ConversationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Conversation.objects.filter(Q(buyer=user) | Q(seller=user)).distinct()
+
+    def create(self, request, *args, **kwargs):
+        """Create or get a conversation for a specific product."""
+        product_id = request.data.get("product_id")
+        if not product_id:
+            return Response({"error": "product_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        buyer = request.user
+        seller = product.seller
+
+        if buyer == seller:
+            return Response({"error": "You cannot chat with yourself."}, status=status.HTTP_400_BAD_REQUEST)
+
+        conversation, created = Conversation.objects.get_or_create(
+            product=product,
+            buyer=buyer,
+            seller=seller
+        )
+
+        serializer = self.get_serializer(conversation)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"])
+    def messages(self, request, pk=None):
+        conversation = self.get_object()
+        messages = conversation.messages.all()
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data)
+

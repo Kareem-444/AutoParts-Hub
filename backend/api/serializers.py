@@ -10,6 +10,7 @@ from rest_framework import serializers
 from .models import (
     Category, Product, ProductImage, Review,
     Cart, CartItem, Order, OrderItem, SellerProfile,
+    Conversation, Message,
 )
 
 User = get_user_model()
@@ -246,6 +247,43 @@ class OrderSerializer(serializers.ModelSerializer):
             "notes", "items", "created_at", "updated_at",
         )
         read_only_fields = ("id", "total", "status", "created_at", "updated_at")
+
+
+# ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ("id", "conversation", "sender", "content", "timestamp", "is_read")
+        read_only_fields = ("id", "sender", "timestamp")
+
+class ConversationSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True, read_only=True)
+    product_title = serializers.CharField(source="product.title", read_only=True)
+    
+    # We serialize the other participant based on who is asking, but for simplicity
+    # in the serializer, we can return both user IDs or nested serializer data.
+    buyer = UserSerializer(read_only=True)
+    seller = UserSerializer(read_only=True)
+    
+    last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = ("id", "product", "product_title", "buyer", "seller", "created_at", "messages", "last_message", "unread_count")
+        read_only_fields = ("id", "created_at")
+
+    def get_last_message(self, obj):
+        last = obj.messages.last()
+        return MessageSerializer(last).data if last else None
+
+    def get_unread_count(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return 0
+        return obj.messages.exclude(sender=request.user).filter(is_read=False).count()
 
 
 # ---------------------------------------------------------------------------

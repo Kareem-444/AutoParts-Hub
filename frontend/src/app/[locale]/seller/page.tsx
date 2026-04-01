@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Link, useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
-import { seller as sellerApi, products as productsApi } from "@/lib/api";
+import { seller as sellerApi, products as productsApi, chat } from "@/lib/api";
 import { SellerProfile, Product, Order } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import SellerLoading from "./loading";
@@ -21,6 +21,7 @@ export default function SellerDashboardPage() {
   const [stats, setStats] = useState({ products: 0, orders: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (authLoading) return;
@@ -31,16 +32,20 @@ export default function SellerDashboardPage() {
 
     async function initDashboard() {
       try {
-        const [dash, p, o] = await Promise.all([
+        const [dash, p, o, convs] = await Promise.all([
           sellerApi.dashboard(),
           sellerApi.products(),
           sellerApi.orders(),
+          chat.getConversations(),
         ]);
         setProfile(dash.profile);
         
         // Calculate total revenue from orders
         const revenue = o.reduce((sum, order) => sum + Number(order.total), 0);
         setStats({ products: dash.product_count, orders: dash.total_orders, revenue });
+        
+        const unread = convs.reduce((sum, conv) => sum + conv.unread_count, 0);
+        setUnreadMessages(unread);
         
         setProducts(p);
         setOrders(o);
@@ -153,6 +158,17 @@ export default function SellerDashboardPage() {
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg`}
             >
               {t("Seller.myOrders")}
+            </button>
+            <button
+              onClick={() => router.push("/messages")}
+              className="border-transparent text-text-muted hover:text-text hover:border-border whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg flex items-center gap-2"
+            >
+              {t("chat.messages") || "Messages"}
+              {unreadMessages > 0 && (
+                <span className="bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {unreadMessages}
+                </span>
+              )}
             </button>
           </nav>
         </div>

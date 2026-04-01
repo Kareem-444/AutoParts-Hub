@@ -1,12 +1,16 @@
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { Product } from "@/types";
 import StarRating from "./StarRating";
+import { getImageUrl } from "@/lib/imageUtils";
+import { useTranslations } from "next-intl";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const t = useTranslations("Product");
+  const imageUrl = getImageUrl(product.primary_image) || "/placeholder-car.jpg";
   const conditionColors: Record<string, string> = {
     new: "bg-green-100 text-green-800",
     used: "bg-amber-100 text-amber-800",
@@ -69,7 +73,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.stock > 0 ? (
               <span className="text-xs text-success font-medium">In Stock ({product.stock})</span>
             ) : (
-              <span className="text-xs text-error font-medium">Out of Stock</span>
+              <span className="text-xs text-error font-medium">{t("outOfStock") || "Out of Stock"}</span>
             )}
           </div>
         </div>

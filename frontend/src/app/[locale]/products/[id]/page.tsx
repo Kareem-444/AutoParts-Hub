@@ -10,6 +10,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslations } from "next-intl";
 import ProductDetailLoading from "./loading";
+import ChatSidePanel from "@/components/Chat/ChatSidePanel";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -28,13 +29,16 @@ export default function ProductDetailPage() {
 
   const t = useTranslations("Product");
   const { addItem } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   // Review form state
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+
+  // Chat state
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     async function loadProduct() {
@@ -226,6 +230,16 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             )}
+            
+            {isAuthenticated && product.seller && user && (typeof product.seller === 'object' ? (product.seller as any).id : product.seller) !== user.id && (
+              <button 
+                onClick={() => setIsChatOpen(true)}
+                className="mt-4 w-full flex items-center justify-center gap-2 py-2 px-4 bg-primary/10 text-primary hover:bg-primary/20 font-semibold rounded-lg transition-colors border border-primary/20"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                {t("chatWithSeller") || "Chat with Seller"}
+              </button>
+            )}
           </div>
 
           {/* Add to Cart Actions */}
@@ -342,6 +356,17 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+      
+      {product && (
+        <ChatSidePanel 
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          productId={Number(id)}
+          partnerName={product.seller_profile?.store_name || product.seller_name}
+          productTitle={product.title}
+          productThumbnail={activeImage || undefined}
+        />
+      )}
     </div>
   );
 }

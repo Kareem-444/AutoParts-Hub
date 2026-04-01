@@ -286,3 +286,34 @@ class SellerProfile(models.Model):
 
     def __str__(self):
         return self.store_name
+
+# ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+class Conversation(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="conversations")
+    buyer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="buyer_conversations")
+    seller = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="seller_conversations")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("product", "buyer", "seller")
+
+    def __str__(self):
+        return f"Conversation: {self.buyer.username} & {self.seller.username} about {self.product.title}"
+
+
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_messages")
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["timestamp"]
+
+    def __str__(self):
+        return f"From {self.sender.username} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+

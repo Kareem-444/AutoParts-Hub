@@ -27,6 +27,7 @@ ALLOWED_HOSTS = ["*"]
 # Installed apps
 # ---------------------------------------------------------------------------
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     "cloudinary_storage",
     "cloudinary",
     "social_django",
+    "channels",
     # Local
     "api",
 ]
@@ -103,6 +105,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+# ---------------------------------------------------------------------------
+# Channels configuration
+# ---------------------------------------------------------------------------
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Database – SQLite (swap to PostgreSQL for production)

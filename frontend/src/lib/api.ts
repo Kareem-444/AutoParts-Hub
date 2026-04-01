@@ -17,6 +17,10 @@ export function setAccessTokenGetter(getter: () => string | null) {
   _getAccessToken = getter;
 }
 
+export function getAuthToken(): string | null {
+  return _getAccessToken ? _getAccessToken() : null;
+}
+
 // ---------------------------------------------------------------------------
 // CSRF token cache
 // ---------------------------------------------------------------------------
@@ -269,4 +273,11 @@ export const admin = {
   users: () => apiClient<User[]>("/admin/users/"),
   orders: () => apiClient<Order[]>("/admin/orders/"),
   updateOrder: (id: number, data: Partial<Order>) => apiClient<Order>(`/admin/orders/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+};
+
+// Chat
+export const chat = {
+  getConversations: () => apiClient<any[]>("/chat/conversations/"),
+  getConversationMessages: (id: number) => apiClient<any[]>(`/chat/conversations/${id}/messages/`),
+  createConversation: (productId: number) => apiClient<any>("/chat/conversations/", { method: "POST", body: JSON.stringify({ product_id: productId }) }),
 };

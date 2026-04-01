@@ -14,7 +14,11 @@
     "home": "الرئيسية",
     "products": "المنتجات",
     "cart": "سلة المشتريات",
-    "profile": "الملف الشخصي"
+    "profile": "الملف الشخصي",
+    "myProfile": "ملفي الشخصي",
+    "browse": "تصفح",
+    "browseAllParts": "تصفح جميع القطع",
+    "adminPanel": "لوحة الإدارة"
   },
   "Home": {
     "heroTitle": "ابحث عن القطعة المثالية لمركبتك.",
@@ -123,5 +127,37 @@
     "previous": "السابق",
     "next": "التالي",
     "apply": "تطبيق"
+  },
+  "chat": {
+    "open_chat": "تحدث مع البائع",
+    "send": "إرسال",
+    "placeholder": "اكتب رسالة...",
+    "messages": "الرسائل",
+    "no_conversations": "لا توجد محادثات بعد",
+    "connecting": "جاري الاتصال...",
+    "connected": "متصل",
+    "disconnected": "غير متصل"
+  },
+  "auth": {
+    "continue_with_google": "المتابعة عبر جوجل"
+  },
+  "Footer": {
+    "quickLinks": "روابط سريعة",
+    "browseParts": "تصفح القطع",
+    "newParts": "قطع جديدة",
+    "usedParts": "قطع مستعملة",
+    "sellOnHub": "البيع على أوتوبارتس هاب",
+    "categoriesTitle": "الفئات",
+    "engineParts": "أجزاء المحرك",
+    "brakeSystem": "نظام الفرامل",
+    "suspension": "نظام التعليق",
+    "electrical": "الأنظمة الكهربائية",
+    "support": "الدعم",
+    "helpCenter": "مركز المساعدة",
+    "shippingInfo": "معلومات الشحن",
+    "returns": "عمليات الإرجاع",
+    "contactUs": "اتصل بنا",
+    "privacyPolicy": "سياسة الخصوصية",
+    "termsOfService": "شروط الخدمة"
   }
 }

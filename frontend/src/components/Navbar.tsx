@@ -15,14 +15,29 @@ export default function Navbar() {
   const { cart } = useCart();
   const { user, logout } = useAuth();
   const cartItemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const searchParams = useSearchParams();
   const t = useTranslations("Search");
+  const navT = useTranslations("Navigation");
+  const authT = useTranslations("Common");
+  const sellerT = useTranslations("Seller");
 
   useEffect(() => {
     const q = searchParams.get("q");
     if (q) setSearchQuery(q);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (user) {
+      import('@/lib/api').then(({ chat }) => {
+        chat.getConversations().then(data => {
+          const totalUnread = data.reduce((sum, conv) => sum + conv.unread_count, 0);
+          setUnreadMessages(totalUnread);
+        }).catch(() => {});
+      });
+    }
+  }, [user]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -71,20 +86,28 @@ export default function Navbar() {
 
           <nav className="hidden md:flex items-center gap-1">
             <Link href="/search" className="px-3 py-2 text-sm text-text-muted hover:text-primary transition-colors rounded-md hover:bg-background">
-              Browse
+              {navT("browse") || "Browse"}
             </Link>
             {user ? (
               <>
                 {user.is_seller && (
                   <Link href="/seller" className="px-3 py-2 text-sm text-text-muted hover:text-primary transition-colors rounded-md hover:bg-background">
-                    Seller Dashboard
+                    {sellerT("dashboard") || "Seller Dashboard"}
                   </Link>
                 )}
                 {user.is_staff && (
                   <Link href="/admin" className="px-3 py-2 text-sm text-text-muted hover:text-primary transition-colors rounded-md hover:bg-background">
-                    Admin
+                    {navT("adminPanel") || "Admin"}
                   </Link>
                 )}
+                <Link href="/messages" className="px-3 py-2 text-sm text-text-muted hover:text-primary transition-colors rounded-md hover:bg-background relative" title={t("chat.messages") || "Messages"}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                  {unreadMessages > 0 && (
+                    <span className="absolute top-0 right-0 bg-error text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                      {unreadMessages}
+                    </span>
+                  )}
+                </Link>
                 <Link href="/checkout" className="px-3 py-2 text-sm text-text-muted hover:text-primary transition-colors rounded-md hover:bg-background relative">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
@@ -101,12 +124,12 @@ export default function Navbar() {
                   </svg>
                 </Link>
                 <button onClick={handleLogout} className="px-3 py-2 text-sm text-error hover:bg-red-50 transition-colors rounded-md">
-                  Logout
+                  {authT("logout") || "Logout"}
                 </button>
               </>
             ) : (
-              <Link href="/auth/login" className="ml-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors">
-                Sign In
+              <Link href="/auth/login" className="ml-2 rtl:ml-0 rtl:mr-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors">
+                {authT("signIn") || "Sign In"}
               </Link>
             )}
             <div className="ml-4 border-l border-border pl-4 hidden md:block">
@@ -145,29 +168,37 @@ export default function Navbar() {
               </button>
             </div>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">
-              Browse All Parts
+              {navT("browseAllParts") || "Browse All Parts"}
             </Link>
             {user ? (
               <>
                 <Link href="/checkout" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">
-                  <span>Cart</span>
+                  <span>{navT("cart") || "Cart"}</span>
                   {cartItemCount > 0 && (
                     <span className="bg-error text-white text-xs rounded-full px-2 py-0.5 font-bold">
                       {cartItemCount}
                     </span>
                   )}
                 </Link>
-                <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">My Profile</Link>
+                <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">{navT("myProfile") || "My Profile"}</Link>
                 {user.is_seller && (
-                  <Link href="/seller" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">Seller Dashboard</Link>
+                  <Link href="/seller" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">{sellerT("dashboard") || "Seller Dashboard"}</Link>
                 )}
                 {user.is_staff && (
-                  <Link href="/admin" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">Admin Panel</Link>
+                  <Link href="/admin" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">{navT("adminPanel") || "Admin Panel"}</Link>
                 )}
-                <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm text-error hover:bg-red-50 rounded-md">Logout</button>
+                <Link href="/messages" onClick={() => setMenuOpen(false)} className="flex items-center justify-between px-3 py-2 text-sm text-text-muted hover:text-primary rounded-md">
+                  <span>{navT("messages") || "Messages"}</span>
+                  {unreadMessages > 0 && (
+                    <span className="bg-error text-white text-xs rounded-full px-2 py-0.5 font-bold">
+                      {unreadMessages}
+                    </span>
+                  )}
+                </Link>
+                <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm text-error hover:bg-red-50 rounded-md">{authT("logout") || "Logout"}</button>
               </>
             ) : (
-              <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm font-medium text-primary hover:bg-blue-50 rounded-md">Sign In</Link>
+              <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-sm font-medium text-primary hover:bg-blue-50 rounded-md">{authT("signIn") || "Sign In"}</Link>
             )}
             <div className="mt-4 pt-4 border-t border-border">
               <LanguageSwitcher />
