@@ -221,6 +221,13 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
       ];
 
       const groqApiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY || "";
+
+      if (!groqApiKey) {
+        throw new Error(
+          "GROQ_API_KEY is not configured. Set NEXT_PUBLIC_GROQ_API_KEY in Vercel env vars."
+        );
+      }
+
       const requestUrl = "https://api.groq.com/openai/v1/chat/completions";
       const requestBody = JSON.stringify({
         model: "llama-3.3-70b-versatile",
@@ -253,7 +260,14 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
             continue;
           }
 
-          if (!response.ok) throw new Error(`API ${response.status}`);
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error(
+                "GROQ_API_KEY is invalid (401). Please update NEXT_PUBLIC_GROQ_API_KEY in Vercel env vars."
+              );
+            }
+            throw new Error(`API ${response.status}`);
+          }
 
           const data = await response.json();
           const assistantContent =
@@ -286,19 +300,24 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
     } catch (err) {
       console.error("Aria chat error:", err);
 
-      const isRateLimit = err instanceof Error && err.message?.includes("429");
-      // If we got here after retries exhausted, wasRateLimited context is lost,
-      // so also check if the error string mentions 429 or we simply show a rate-limit message
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const isRateLimit = /429|rate/i.test(errMsg);
+      const isAuthError = /401|invalid|not configured|GROQ_API_KEY/i.test(errMsg);
+
       const errorMsg: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: isRateLimit || (err instanceof Error && /rate/i.test(err.message))
+        content: isAuthError
           ? isRtl
-            ? "⏳ لقد تجاوزت حد الطلبات المسموح به. يرجى الانتظار بضع ثوانٍ ثم المحاولة مرة أخرى."
-            : "⏳ Rate limit reached. Please wait a few seconds and try again."
-          : isRtl
-            ? "عذراً، أواجه مشكلة في الاتصال. يرجى المحاولة مرة أخرى."
-            : "Sorry, I'm having trouble connecting. Please try again.",
+            ? "🔑 عذراً، مفتاح الذكاء الاصطناعي غير مُفعّل. يرجى التواصل مع الدعم."
+            : "🔑 Sorry, the AI assistant key is not configured. Please contact support."
+          : isRateLimit
+            ? isRtl
+              ? "⏳ لقد تجاوزت حد الطلبات المسموح به. يرجى الانتظار بضع ثوانٍ ثم المحاولة مرة أخرى."
+              : "⏳ Rate limit reached. Please wait a few seconds and try again."
+            : isRtl
+              ? "عذراً، أواجه مشكلة في الاتصال. يرجى المحاولة مرة أخرى."
+              : "Sorry, I'm having trouble connecting. Please try again.",
         timestamp: new Date(),
         isError: true,
       };
