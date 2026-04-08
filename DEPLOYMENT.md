@@ -35,7 +35,7 @@ Follow these steps to deploy **AutoParts Hub** to production using **Railway** (
 | `ALLOWED_HOSTS` | Domains allowed to access backend | `your-backend.railway.app,api.yourdomain.com` |
 | `CORS_ALLOWED_ORIGINS` | Frontend domains for API access | `https://your-app.vercel.app` |
 | `CSRF_TRUSTED_ORIGINS` | Frontend domains for CSRF safety | `https://your-app.vercel.app` |
-| `DJANGO_SETTINGS_MODULE` | Point to production settings | `config.settings_production` |
+| `DJANGO_SETTINGS_MODULE` | Django settings module | `config.settings` |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary name | From Cloudinary Dashboard |
 | `CLOUDINARY_API_KEY` | Cloudinary API Key | From Cloudinary Dashboard |
 | `CLOUDINARY_API_SECRET` | Cloudinary API Secret | From Cloudinary Dashboard |
@@ -95,4 +95,4 @@ Once you have your **Vercel Production URL**:
     - `https://your-app.vercel.app` (and any custom domain)
 
 > [!CAUTION]
-> Ensure `SECURE_SSL_REDIRECT = True` remains set in `settings_production.py` to enforce HTTPS across the entire stack.
+> Ensure `DEBUG = False` is set via the Railway environment variable so production security settings are enforced in `config/settings.py`.

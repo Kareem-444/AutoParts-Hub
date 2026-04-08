@@ -226,15 +226,34 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 # CORS – allow frontend origins (dev + production)
 # ---------------------------------------------------------------------------
-_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+from urllib.parse import urlparse
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    _frontend_url,
-]
-# Deduplicate (in case FRONTEND_URL is also localhost)
-CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS))
+
+def _normalize_origins(raw_value, defaults):
+    """Parse comma-separated origins, ensure https:// (except localhost),
+    strip trailing slashes and paths, deduplicate, always include defaults."""
+    origins = list(defaults)
+    raw = os.getenv(raw_value, "")
+    if raw.strip():
+        for origin in raw.split(","):
+            origin = origin.strip().rstrip("/")
+            if not origin:
+                continue
+            # Parse the URL to extract scheme and netloc cleanly
+            parsed = urlparse(origin if "://" in origin else "https://" + origin)
+            if not parsed.netloc:
+                continue
+            scheme = parsed.scheme if parsed.scheme in ("http", "https") else "https"
+            normalized = f"{scheme}://{parsed.netloc}"
+            if normalized not in origins:
+                origins.append(normalized)
+    return list(dict.fromkeys(origins))
+
+
+CORS_ALLOWED_ORIGINS = _normalize_origins(
+    "CORS_ALLOWED_ORIGINS",
+    defaults=("http://localhost:3000", "http://127.0.0.1:3000"),
+)
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -252,12 +271,10 @@ CORS_ALLOW_HEADERS = [
 # ---------------------------------------------------------------------------
 # CSRF
 # ---------------------------------------------------------------------------
-_csrf_trusted = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    _frontend_url,
-]
-CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_csrf_trusted))
+CSRF_TRUSTED_ORIGINS = _normalize_origins(
+    "CSRF_TRUSTED_ORIGINS",
+    defaults=("http://localhost:3000", "http://127.0.0.1:3000"),
+)
 
 if not DEBUG:
     SESSION_COOKIE_SAMESITE = "None"
