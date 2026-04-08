@@ -1,13 +1,14 @@
 """
-Django settings for Car Parts Marketplace.
+Django settings for AutoParts Hub.
 
-Uses SQLite for zero-config local development.
-CORS is configured to allow the Next.js frontend on localhost:3000.
+Supports local development (SQLite) and production (PostgreSQL on Railway).
+CORS is configured to allow the Next.js frontend.
 """
 import os
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+import dj_database_url
 
 load_dotenv()
 
@@ -19,9 +20,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------------
 # Security
 # ---------------------------------------------------------------------------
-SECRET_KEY = "django-insecure-car-parts-dev-key-change-in-production"
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable must be set")
+
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
+
+# ALLOWED_HOSTS: read from env (comma-separated) with sensible defaults
+_raw_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
 
 # ---------------------------------------------------------------------------
 # Installed apps
@@ -117,14 +124,25 @@ CHANNEL_LAYERS = {
 }
 
 # ---------------------------------------------------------------------------
-# Database – SQLite (swap to PostgreSQL for production)
+# Database – PostgreSQL (Railway) with SQLite fallback for local dev
 # ---------------------------------------------------------------------------
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # ---------------------------------------------------------------------------
 # Custom user model
@@ -206,12 +224,18 @@ SIMPLE_JWT = {
 }
 
 # ---------------------------------------------------------------------------
-# CORS – Allow the Next.js dev server
+# CORS – allow frontend origins (dev + production)
 # ---------------------------------------------------------------------------
+_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    _frontend_url,
 ]
+# Deduplicate (in case FRONTEND_URL is also localhost)
+CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS))
+
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -228,9 +252,22 @@ CORS_ALLOW_HEADERS = [
 # ---------------------------------------------------------------------------
 # CSRF
 # ---------------------------------------------------------------------------
-CSRF_TRUSTED_ORIGINS = [
+_csrf_trusted = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    _frontend_url,
 ]
-CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_csrf_trusted))
+
+if not DEBUG:
+    SESSION_COOKIE_SAMESITE = "None"
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = "None"
+    CSRF_COOKIE_SECURE = True
+else:
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SECURE = False
+
 CSRF_COOKIE_HTTPONLY = False  # JS needs to read csrf cookie
