@@ -36,9 +36,9 @@ def health_check(request):
 # Cookie settings for the refresh token
 REFRESH_COOKIE_KEY = "refresh_token"
 REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
-REFRESH_COOKIE_SECURE = False  # Set True in production (HTTPS only)
+REFRESH_COOKIE_SECURE = True  # Requires HTTPS (always True for cross-site)
 REFRESH_COOKIE_HTTPONLY = True
-REFRESH_COOKIE_SAMESITE = "Lax"
+REFRESH_COOKIE_SAMESITE = "None"
 
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> Response:
@@ -60,6 +60,7 @@ def _clear_refresh_cookie(response: Response) -> Response:
     response.delete_cookie(
         key=REFRESH_COOKIE_KEY,
         path="/",
+        secure=REFRESH_COOKIE_SECURE,
         samesite=REFRESH_COOKIE_SAMESITE,
     )
     return response
