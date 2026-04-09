@@ -60,7 +60,6 @@ def _clear_refresh_cookie(response: Response) -> Response:
     response.delete_cookie(
         key=REFRESH_COOKIE_KEY,
         path="/",
-        secure=REFRESH_COOKIE_SECURE,
         samesite=REFRESH_COOKIE_SAMESITE,
     )
     return response
