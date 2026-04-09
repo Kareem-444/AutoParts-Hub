@@ -145,7 +145,8 @@
     "disconnected": "غير متصل"
   },
   "auth": {
-    "continue_with_google": "المتابعة عبر جوجل"
+    "continue_with_google": "المتابعة عبر جوجل",
+    "loading": "جاري التحميل..."
   },
   "Footer": {
     "quickLinks": "روابط سريعة",

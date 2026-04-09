@@ -145,7 +145,8 @@
     "disconnected": "Disconnected"
   },
   "auth": {
-    "continue_with_google": "Continue with Google"
+    "continue_with_google": "Continue with Google",
+    "loading": "Loading..."
   },
   "Footer": {
     "quickLinks": "Quick Links",
