@@ -4,6 +4,24 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { User } from "@/types";
 import { setAccessTokenGetter } from "@/lib/api";
 
+// ---------------------------------------------------------------------------
+// Frontend-domain session cookie helpers
+// The refresh_token cookie is set by Django (different domain) and is NOT
+// readable by Next.js middleware. We maintain a lightweight 'auth_session'
+// cookie on the Next.js domain so middleware can gate protected routes.
+// ---------------------------------------------------------------------------
+function setAuthCookie() {
+  if (typeof document === "undefined") return;
+  // 7-day expiry — same lifetime as Django refresh token
+  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
+  document.cookie = `auth_session=1; path=/; expires=${expires}; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
+}
+
+function clearAuthCookie() {
+  if (typeof document === "undefined") return;
+  document.cookie = "auth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 interface AuthContextType {
@@ -39,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       setAccessToken(data.access);
       setUser(data.user);
+      setAuthCookie();
       return data.access;
     } catch {
       return null;
@@ -74,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json();
     setAccessToken(data.access);
     setUser(data.user);
+    setAuthCookie();
   };
 
   const register = async (formData: Record<string, unknown>): Promise<User> => {
@@ -92,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json();
     setAccessToken(data.access);
     setUser(data.user);
+    setAuthCookie();
     return data.user;
   };
 
@@ -106,11 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setAccessToken(null);
     setUser(null);
+    clearAuthCookie();
   };
 
   const setAuthFromGoogle = (data: { access: string; user: User }) => {
     setAccessToken(data.access);
     setUser(data.user);
+    setAuthCookie();
   };
 
   return (

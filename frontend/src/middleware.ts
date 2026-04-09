@@ -7,7 +7,7 @@ import { decodeJwt } from "jose";
 const intlMiddleware = createIntlMiddleware(routing);
 
 // Routes that require authentication (relative to /[locale])
-const PROTECTED_PATHS = ["/checkout", "/profile", "/seller", "/admin"];
+const PROTECTED_PATHS = ["/checkout", "/profile", "/dashboard", "/seller", "/admin"];
 
 // Routes that require specific roles
 const SELLER_PATHS = ["/seller"];
@@ -58,45 +58,38 @@ export default function middleware(request: NextRequest) {
 
   // Check if this is a protected route
   if (isProtectedPath(pathname, locale)) {
-    const refreshToken = request.cookies.get("refresh_token")?.value;
+    // 'auth_session' is a lightweight cookie set by the Next.js frontend
+    // after a successful login/refresh. We cannot use 'refresh_token' here
+    // because that cookie is set by the Django backend domain and the browser
+    // only sends it to that domain — NOT to the Next.js (Vercel) domain.
+    const authSession = request.cookies.get("auth_session")?.value;
 
-    // No refresh token → redirect to login
-    if (!refreshToken) {
+    if (!authSession) {
       const loginUrl = new URL(`/${locale}/auth/login`, request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    // Decode JWT to check role claims (no verification needed —
-    // the backend will reject invalid tokens on API calls)
-    try {
-      const payload = decodeJwt(refreshToken) as JWTPayload;
+    // Role-based checks: we still decode the refresh_token if present
+    // (it may exist if Django and Next.js share the same domain, e.g. local dev)
+    // but we do NOT block access purely based on its absence.
+    const refreshToken = request.cookies.get("refresh_token")?.value;
+    if (refreshToken) {
+      try {
+        const payload = decodeJwt(refreshToken) as JWTPayload;
 
-      // Check if token is expired
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        const loginUrl = new URL(`/${locale}/auth/login`, request.url);
-        loginUrl.searchParams.set("redirect", pathname);
-        const response = NextResponse.redirect(loginUrl);
-        response.cookies.delete("refresh_token");
-        return response;
-      }
+        // Seller route but user is not a seller
+        if (isSellerPath(pathname, locale) && !payload.is_seller) {
+          return NextResponse.redirect(new URL(`/${locale}`, request.url));
+        }
 
-      // Seller route but user is not a seller
-      if (isSellerPath(pathname, locale) && !payload.is_seller) {
-        return NextResponse.redirect(new URL(`/${locale}`, request.url));
+        // Admin route but user is not staff
+        if (isAdminPath(pathname, locale) && !payload.is_staff) {
+          return NextResponse.redirect(new URL(`/${locale}`, request.url));
+        }
+      } catch {
+        // Token decode failed — still allow access; the backend will reject bad tokens
       }
-
-      // Admin route but user is not staff
-      if (isAdminPath(pathname, locale) && !payload.is_staff) {
-        return NextResponse.redirect(new URL(`/${locale}`, request.url));
-      }
-    } catch {
-      // Invalid token format — redirect to login
-      const loginUrl = new URL(`/${locale}/auth/login`, request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      const response = NextResponse.redirect(loginUrl);
-      response.cookies.delete("refresh_token");
-      return response;
     }
   }
 
