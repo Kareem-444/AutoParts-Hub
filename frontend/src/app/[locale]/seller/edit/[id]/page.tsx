@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, use } from "react";
 import { useRouter, Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
-import { products as productsApi, categories as categoriesApi } from "@/lib/api";
+import { products as productsApi } from "@/lib/api";
 import { getImageUrl } from "@/lib/imageUtils";
-import { Category, Product, ProductImage } from "@/types";
+import { Product, ProductImage } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { useModal } from "@/context/ModalContext";
 
@@ -19,7 +19,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showModal } = useModal();
 
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
 
@@ -50,12 +49,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
     async function fetchData() {
       try {
-        const [cats, prod] = await Promise.all([
-          categoriesApi.list(),
-          productsApi.get(productId)
-        ]);
-        
-        setCategories(cats);
+        const prod = await productsApi.get(productId);
         
         // Ensure price is formatted as typical number string without currency symbol
         const formattedPrice = typeof prod.price === 'string' ? prod.price.replace(/[^0-9.]/g, '') : prod.price;
@@ -69,7 +63,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           car_make: prod.car_make || "",
           car_model: prod.car_model || "",
           car_year: prod.car_year?.toString() || "",
-          category: prod.category?.toString() || "",
+          category: typeof prod.category === "object" && prod.category ? prod.category.name : (prod.category?.toString() || ""),
         });
         
         setExistingImages(prod.images || []);
@@ -230,11 +224,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.category")} *</label>
-                  <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <input required type="text" placeholder={t("Seller.categoryPlaceholder") || "e.g. Engine Parts"} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
                 </div>
               </div>
 

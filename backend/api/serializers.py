@@ -181,6 +181,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    category = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = Product
@@ -191,11 +192,23 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
+        # Handle category string
+        category_name = validated_data.pop("category", None)
+        if category_name:
+            category_obj, _ = Category.objects.get_or_create(name=category_name)
+            validated_data["category"] = category_obj
+            
         # Remove 'images' so DRF doesn't try to save files directly to the relation
         validated_data.pop("images", [])
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        # Handle category string
+        category_name = validated_data.pop("category", None)
+        if category_name:
+            category_obj, _ = Category.objects.get_or_create(name=category_name)
+            validated_data["category"] = category_obj
+            
         # Remove 'images' so DRF doesn't try to save files directly to the relation
         validated_data.pop("images", [])
         return super().update(instance, validated_data)

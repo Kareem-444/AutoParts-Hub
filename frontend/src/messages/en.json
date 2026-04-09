@@ -97,6 +97,7 @@
     "carModel": "Car Model",
     "carYear": "Car Year",
     "category": "Category",
+    "categoryPlaceholder": "e.g. Engine Parts",
     "images": "Images",
     "uploadImages": "Upload Images",
     "maxImages": "Max 5 images. First image will be primary.",

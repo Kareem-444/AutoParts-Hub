@@ -97,6 +97,7 @@
     "carModel": "موديل السيارة",
     "carYear": "سنة الصنع",
     "category": "الفئة",
+    "categoryPlaceholder": "مثال: أجزاء المحرك",
     "images": "الصور",
     "uploadImages": "رفع الصور",
     "maxImages": "بحد أقصى 5 صور. الصورة الأولى ستكون الرئيسية.",

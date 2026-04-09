@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
-import { products as productsApi, categories as categoriesApi } from "@/lib/api";
-import { Category } from "@/types";
+import { products as productsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useModal } from "@/context/ModalContext";
 
@@ -15,7 +14,6 @@ export default function NewProductPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showModal } = useModal();
 
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
 
@@ -41,15 +39,7 @@ export default function NewProductPage() {
       return;
     }
 
-    categoriesApi.list().then((res) => {
-      setCategories(res);
-      if (res.length > 0) {
-        setFormData(prev => ({ ...prev, category: res[0].id.toString() }));
-      }
-      setInitLoading(false);
-    }).catch(() => {
-      setInitLoading(false);
-    });
+    setInitLoading(false);
   }, [isAuthenticated, authLoading, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +57,7 @@ export default function NewProductPage() {
       }
 
       setImages(prev => [...prev, ...filesToAdd]);
-      
+
       const newPreviews = filesToAdd.map(file => URL.createObjectURL(file));
       setPreviews(prev => [...prev, ...newPreviews]);
     }
@@ -142,22 +132,22 @@ export default function NewProductPage() {
             <div className="space-y-5 flex flex-col">
               <div>
                 <label className="block text-sm font-bold text-text mb-2">{t("Seller.title")} *</label>
-                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
+                <input required type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-text mb-2">{t("Seller.description")} *</label>
-                <textarea required rows={5} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none" />
+                <textarea required rows={5} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.price")} ($) *</label>
-                  <input required type="number" step="0.01" min="0.01" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
+                  <input required type="number" step="0.01" min="0.01" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.stock")} *</label>
-                  <input required type="number" min="0" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
+                  <input required type="number" min="0" value={formData.stock} onChange={e => setFormData({ ...formData, stock: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
                 </div>
               </div>
             </div>
@@ -167,7 +157,7 @@ export default function NewProductPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.condition")} *</label>
-                  <select required value={formData.condition} onChange={e => setFormData({...formData, condition: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+                  <select required value={formData.condition} onChange={e => setFormData({ ...formData, condition: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
                     <option value="new">{t("Seller.new")}</option>
                     <option value="used">{t("Seller.used")}</option>
                     <option value="refurbished">{t("Seller.refurbished")}</option>
@@ -175,26 +165,22 @@ export default function NewProductPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.category")} *</label>
-                  <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <input required type="text" placeholder={t("Seller.categoryPlaceholder") || "e.g. Engine Parts"} value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.carMake")} *</label>
-                  <input required type="text" placeholder="e.g. Toyota" value={formData.car_make} onChange={e => setFormData({...formData, car_make: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none" />
+                  <input required type="text" placeholder="e.g. Toyota" value={formData.car_make} onChange={e => setFormData({ ...formData, car_make: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.carModel")} *</label>
-                  <input required type="text" placeholder="e.g. Camry" value={formData.car_model} onChange={e => setFormData({...formData, car_model: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none" />
+                  <input required type="text" placeholder="e.g. Camry" value={formData.car_model} onChange={e => setFormData({ ...formData, car_model: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-text mb-2">{t("Seller.carYear")} *</label>
-                  <input required type="number" placeholder="2020" value={formData.car_year} onChange={e => setFormData({...formData, car_year: e.target.value})} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none" />
+                  <input required type="number" placeholder="2020" value={formData.car_year} onChange={e => setFormData({ ...formData, car_year: e.target.value })} className="w-full px-4 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary outline-none" />
                 </div>
               </div>
 
@@ -203,8 +189,8 @@ export default function NewProductPage() {
                 <label className="block text-sm font-bold text-text mb-2">
                   {t("Seller.images")} * <span className="font-normal text-text-muted text-xs ms-2">({t("Seller.maxImages")})</span>
                 </label>
-                
-                <div 
+
+                <div
                   className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-background transition-colors h-[160px]"
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={e => e.preventDefault()}
@@ -227,8 +213,8 @@ export default function NewProductPage() {
                     {previews.map((preview, i) => (
                       <div key={i} className="relative w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-border group">
                         <img src={preview} alt="preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => removeImage(i)}
                           className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
