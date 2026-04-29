@@ -113,16 +113,20 @@ export default function ChatSidePanel({
       ? new URL(process.env.NEXT_PUBLIC_API_URL).host 
       : "localhost:8000";
 
-    const wsUrl = `${wsProtocol}//${host}/ws/chat/${id}/?token=${token}`;
+    const wsUrl = `${wsProtocol}//${host}/ws/chat/${id}/`;
     
     const socket = new WebSocket(wsUrl);
     
     socket.onopen = () => {
-      setIsConnected(true);
+      socket.send(JSON.stringify({ type: "authenticate", token }));
     };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      if (data.type === "authenticated") {
+        setIsConnected(true);
+        return;
+      }
       setMessages(prev => [...prev, data]);
     };
 

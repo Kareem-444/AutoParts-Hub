@@ -19,6 +19,7 @@ whitenoise~=6.9.0
 # Real-time & WebSockets (ASGI)
 daphne==4.2.1
 channels==4.3.2
+channels-redis==4.2.1
 
 # Authentication & OAuth
 google-auth==2.49.1

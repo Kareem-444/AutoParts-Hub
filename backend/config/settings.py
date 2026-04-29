@@ -27,7 +27,10 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
 # ALLOWED_HOSTS: read from env (comma-separated) with sensible defaults
-_raw_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+_raw_hosts = os.getenv(
+    "ALLOWED_HOSTS",
+    "localhost,127.0.0.1,.railway.app,.vercel.app",
+)
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
 
 # ---------------------------------------------------------------------------
@@ -118,11 +121,21 @@ ASGI_APPLICATION = "config.asgi.application"
 # ---------------------------------------------------------------------------
 # Channels configuration
 # ---------------------------------------------------------------------------
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
+if DEBUG:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.environ.get("REDIS_URL", "redis://localhost:6379")],
+            },
+        }
+    }
 
 # ---------------------------------------------------------------------------
 # Database – PostgreSQL (Railway) with SQLite fallback for local dev
