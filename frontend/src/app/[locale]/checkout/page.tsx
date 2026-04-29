@@ -23,10 +23,18 @@ export default function CheckoutPage() {
       await handleRemove(itemId);
       return;
     }
+
+    const item = cart?.items.find((cartItem) => cartItem.id === itemId);
+    if (item && newQty > item.product.stock) {
+      setError(`Only ${item.product.stock} left in stock for ${item.product.title}.`);
+      return;
+    }
+
     try {
+      setError(null);
       await updateItem(itemId, newQty);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message || "Failed to update quantity");
     }
   };
 
@@ -107,6 +115,10 @@ export default function CheckoutPage() {
     );
   }
 
+  const hasStockIssue = cart.items.some(
+    (item) => item.product.stock < 1 || item.quantity > item.product.stock
+  );
+
   return (
     <div className="bg-background min-h-screen py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -120,7 +132,7 @@ export default function CheckoutPage() {
                 <h2 className="text-lg font-bold text-text">Order Items</h2>
               </div>
               <ul className="divide-y divide-border">
-                {cart.items.map((item: any) => (
+                {cart.items.map((item) => (
                   <li key={item.id} className="p-6 flex items-start gap-4">
                     <div className="w-20 h-20 shrink-0 bg-background-alt rounded-lg border border-border overflow-hidden">
                       {item.product.primary_image ? (
@@ -138,11 +150,28 @@ export default function CheckoutPage() {
                         {item.product.title}
                       </Link>
                       <p className="mt-1 text-sm text-text-muted">Unit Price: ${Number(item.product.price).toFixed(2)}</p>
+                      {item.product.stock < 1 ? (
+                        <p className="mt-1 text-sm font-semibold text-error">Out of Stock</p>
+                      ) : item.quantity > item.product.stock ? (
+                        <p className="mt-1 text-sm font-semibold text-error">
+                          Only {item.product.stock} left in stock
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-sm text-text-light">
+                          {item.product.stock} in stock
+                        </p>
+                      )}
                       <div className="flex items-center gap-4 mt-3">
                         <div className="flex items-center border border-border rounded-md bg-white">
                           <button onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)} className="px-3 py-1 text-text-muted hover:text-text">-</button>
                           <span className="text-sm font-medium px-2">{item.quantity}</span>
-                          <button onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)} className="px-3 py-1 text-text-muted hover:text-text">+</button>
+                          <button
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                            disabled={item.quantity >= item.product.stock}
+                            className="px-3 py-1 text-text-muted hover:text-text disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            +
+                          </button>
                         </div>
                         <button onClick={() => handleRemove(item.id)} className="text-sm text-error font-medium hover:underline">
                           Remove
@@ -229,12 +258,12 @@ export default function CheckoutPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || hasStockIssue}
                 className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-sm transition-colors ${
-                  submitting ? "bg-primary-light cursor-not-allowed" : "bg-primary hover:bg-primary-dark"
+                  submitting || hasStockIssue ? "bg-primary-light cursor-not-allowed" : "bg-primary hover:bg-primary-dark"
                 }`}
               >
-                {submitting ? "Processing..." : "Place Order"}
+                {submitting ? "Processing..." : hasStockIssue ? "Resolve Stock Issues" : "Place Order"}
               </button>
             </form>
           </div>

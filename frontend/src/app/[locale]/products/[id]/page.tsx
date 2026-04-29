@@ -247,7 +247,8 @@ export default function ProductDetailPage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex items-center border border-border rounded-xl h-14 bg-surface w-full sm:w-32 shrink-0">
                 <button
-                  className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text"
+                  disabled={product.stock < 1}
+                  className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text disabled:opacity-40 disabled:cursor-not-allowed"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 >
                   -
@@ -257,11 +258,13 @@ export default function ProductDetailPage() {
                   min="1"
                   max={product.stock}
                   value={quantity}
+                  disabled={product.stock < 1}
                   onChange={(e) => setQuantity(Math.min(product.stock, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="flex-1 w-full text-center font-semibold text-text focus:outline-none bg-transparent"
+                  className="flex-1 w-full text-center font-semibold text-text focus:outline-none bg-transparent disabled:text-text-muted"
                 />
                 <button
-                  className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text"
+                  disabled={product.stock < 1}
+                  className="w-10 h-full flex justify-center items-center text-text-muted hover:text-text disabled:opacity-40 disabled:cursor-not-allowed"
                   onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
                 >
                   +
@@ -292,6 +295,11 @@ export default function ProductDetailPage() {
             {product.stock > 0 && product.stock < 5 && (
               <p className="text-error text-sm font-medium mt-1">
                 {t("hurryLeft", { stock: product.stock })}
+              </p>
+            )}
+            {product.stock < 1 && (
+              <p className="text-error text-sm font-medium mt-1">
+                {t("outOfStock")}
               </p>
             )}
           </div>

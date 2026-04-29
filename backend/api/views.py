@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
 from django.core.signing import dumps, loads, BadSignature
+from django.db import transaction
 from django.middleware.csrf import get_token
 import json
 import re
@@ -558,6 +559,13 @@ class CartViewSet(viewsets.ViewSet):
     """Manage the authenticated user's shopping cart."""
     permission_classes = [permissions.IsAuthenticated]
 
+    def _parse_positive_quantity(self, value):
+        try:
+            quantity = int(value)
+        except (TypeError, ValueError):
+            return None
+        return quantity if quantity > 0 else None
+
     def list(self, request):
         """Get the current user's cart with all items."""
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -568,10 +576,28 @@ class CartViewSet(viewsets.ViewSet):
         """Add a product to the cart (or increase quantity)."""
         cart, _ = Cart.objects.get_or_create(user=request.user)
         product_id = request.data.get("product_id")
-        quantity = int(request.data.get("quantity", 1))
+        quantity = self._parse_positive_quantity(request.data.get("quantity", 1))
+        if quantity is None:
+            return Response(
+                {"error": "Quantity must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            product = Product.objects.get(pk=product_id)
+        except (Product.DoesNotExist, ValueError, TypeError):
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        existing_item = CartItem.objects.filter(cart=cart, product=product).first()
+        requested_quantity = quantity + (existing_item.quantity if existing_item else 0)
+        if requested_quantity > product.stock:
+            return Response(
+                {"error": f"Not enough stock for: {product.title}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         item, created = CartItem.objects.get_or_create(
-            cart=cart, product_id=product_id, defaults={"quantity": quantity}
+            cart=cart, product=product, defaults={"quantity": quantity}
         )
         if not created:
             item.quantity += quantity
@@ -584,15 +610,22 @@ class CartViewSet(viewsets.ViewSet):
         """Update quantity of an item in the cart."""
         cart = Cart.objects.get(user=request.user)
         item_id = request.data.get("item_id")
-        quantity = int(request.data.get("quantity", 1))
+        quantity = self._parse_positive_quantity(request.data.get("quantity", 1))
+        if quantity is None:
+            return Response(
+                {"error": "Quantity must be a positive integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
-            item = CartItem.objects.get(id=item_id, cart=cart)
-            if quantity <= 0:
-                item.delete()
-            else:
-                item.quantity = quantity
-                item.save()
+            item = CartItem.objects.select_related("product").get(id=item_id, cart=cart)
+            if quantity > item.product.stock:
+                return Response(
+                    {"error": f"Not enough stock for: {item.product.title}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            item.quantity = quantity
+            item.save()
         except CartItem.DoesNotExist:
             return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -628,6 +661,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Order.objects.all()
         return Order.objects.filter(user=user)
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         """Create an order from the current cart contents."""
         try:
@@ -635,12 +669,36 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Cart.DoesNotExist:
             return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
 
-        cart_items = cart.items.select_related("product").all()
-        if not cart_items.exists():
+        cart_items = list(cart.items.select_related("product").all())
+        if not cart_items:
             return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        product_ids = [item.product_id for item in cart_items]
+        locked_products = {
+            product.id: product
+            for product in Product.objects.select_for_update().filter(id__in=product_ids)
+        }
+
+        for item in cart_items:
+            product = locked_products.get(item.product_id)
+            if product is None:
+                return Response(
+                    {"error": f"Product no longer exists: {item.product.title}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if product.stock < item.quantity:
+                return Response(
+                    {"error": f"Not enough stock for: {product.title}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        total = sum(
+            locked_products[item.product_id].price * item.quantity
+            for item in cart_items
+        )
 
         # Create order
         order = Order.objects.create(
@@ -648,16 +706,19 @@ class OrderViewSet(viewsets.ModelViewSet):
             shipping_address=serializer.validated_data["shipping_address"],
             phone=serializer.validated_data.get("phone", ""),
             notes=serializer.validated_data.get("notes", ""),
-            total=cart.total,
+            total=total,
         )
 
-        # Copy cart items into order items
+        # Copy cart items into order items and decrement stock while rows are locked.
         for ci in cart_items:
+            product = locked_products[ci.product_id]
+            product.stock -= ci.quantity
+            product.save(update_fields=["stock"])
             OrderItem.objects.create(
                 order=order,
-                product=ci.product,
-                product_title=ci.product.title,
-                price=ci.product.price,
+                product=product,
+                product_title=product.title,
+                price=product.price,
                 quantity=ci.quantity,
             )
 
