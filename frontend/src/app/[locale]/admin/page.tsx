@@ -6,6 +6,8 @@ import { admin, auth } from "@/lib/api";
 import { User, Order } from "@/types";
 import { useModal } from "@/context/ModalContext";
 
+type OrderStatus = Order["status"];
+
 export default function AdminPanelPage() {
   const router = useRouter();
   const { showModal } = useModal();
@@ -18,7 +20,7 @@ export default function AdminPanelPage() {
     async function initAdmin() {
       try {
         const currentUser = await auth.me();
-        if (!currentUser.is_staff) throw new Error("Not authorized");
+        if (currentUser.is_staff !== true) throw new Error("Not authorized");
 
         const [us, ords] = await Promise.all([
           admin.users(),
@@ -35,9 +37,9 @@ export default function AdminPanelPage() {
     initAdmin();
   }, [router]);
 
-  const handleUpdateOrderStatus = async (id: number, status: string) => {
+  const handleUpdateOrderStatus = async (id: number, status: OrderStatus) => {
     try {
-      const updated = await admin.updateOrder(id, { status } as any);
+      const updated = await admin.updateOrder(id, { status });
       setOrders(orders.map((o) => (o.id === id ? updated : o)));
     } catch (err: any) {
       showModal({
@@ -110,7 +112,7 @@ export default function AdminPanelPage() {
                     <td className="px-6 py-4 text-right">
                       <select
                         value={o.status}
-                        onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                        onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value as OrderStatus)}
                         className="bg-background border border-border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-primary outline-none"
                       >
                         <option value="pending">Pending</option>

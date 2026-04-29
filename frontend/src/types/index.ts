@@ -2,13 +2,13 @@ export interface User {
   id: number;
   username: string;
   email: string;
+  is_staff: boolean;
   is_seller: boolean;
   phone?: string;
   address?: string;
   avatar?: string | null;
   avatar_url?: string | null;
   date_joined: string;
-  is_staff?: boolean;
   has_usable_password?: boolean;
 }
 

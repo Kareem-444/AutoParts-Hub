@@ -26,7 +26,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "is_seller", "phone", "address", "avatar", "avatar_url", "date_joined", "has_usable_password")
+        fields = (
+            "id", "username", "email", "is_staff", "is_seller", "phone",
+            "address", "avatar", "avatar_url", "date_joined",
+            "has_usable_password",
+        )
         read_only_fields = fields
         
     def get_has_usable_password(self, obj):
@@ -260,6 +264,13 @@ class OrderSerializer(serializers.ModelSerializer):
             "notes", "items", "created_at", "updated_at",
         )
         read_only_fields = ("id", "total", "status", "created_at", "updated_at")
+
+
+class AdminOrderSerializer(OrderSerializer):
+    status = serializers.ChoiceField(choices=Order.STATUS_CHOICES)
+
+    class Meta(OrderSerializer.Meta):
+        read_only_fields = ("id", "total", "created_at", "updated_at")
 
 
 # ---------------------------------------------------------------------------

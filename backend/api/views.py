@@ -25,7 +25,7 @@ from .serializers import (
     ProductListSerializer, ProductDetailSerializer, ProductWriteSerializer,
     ProductImageSerializer, ReviewSerializer,
     CartSerializer, CartItemSerializer,
-    OrderSerializer,
+    OrderSerializer, AdminOrderSerializer,
     SellerProfileSerializer,
     CustomTokenObtainPairSerializer,
 )
@@ -683,7 +683,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 class AdminOrderViewSet(viewsets.ModelViewSet):
     """Admin-only: manage all orders."""
     queryset = Order.objects.all()
-    serializer_class = OrderSerializer
+    serializer_class = AdminOrderSerializer
     permission_classes = [permissions.IsAdminUser]
 
 
