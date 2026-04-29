@@ -20,13 +20,29 @@ export default function SearchClient() {
   useEffect(() => {
     let active = true;
     
-    const params = new URLSearchParams(searchParams.toString());
-    const q = params.get("q");
+    const sourceParams = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
+    const q = sourceParams.get("q") || sourceParams.get("search");
     
     if (q) {
       params.set("search", q);
-      params.delete("q");
     }
+
+    const category = sourceParams.get("category") || sourceParams.get("category__slug");
+    if (category) params.set("category", category);
+
+    [
+      "condition",
+      "car_make",
+      "car_model",
+      "car_year",
+      "featured",
+      "ordering",
+      "page",
+    ].forEach((key) => {
+      const value = sourceParams.get(key);
+      if (value) params.set(key, value);
+    });
 
     const fetchResults = async () => {
       if (data) setIsRefetching(true);

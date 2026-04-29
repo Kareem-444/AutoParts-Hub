@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.signing import dumps, loads, BadSignature
 from django.middleware.csrf import get_token
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -10,6 +11,7 @@ from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django_filters import rest_framework as django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
@@ -180,6 +182,42 @@ class IsSeller(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.is_seller
+
+
+class ProductFilter(django_filters.FilterSet):
+    category = django_filters.CharFilter(field_name="category__slug", lookup_expr="iexact")
+    condition = django_filters.CharFilter(field_name="condition", lookup_expr="iexact")
+    car_make = django_filters.CharFilter(field_name="car_make", lookup_expr="icontains")
+    car_model = django_filters.CharFilter(field_name="car_model", lookup_expr="icontains")
+    car_year = django_filters.CharFilter(method="filter_car_year")
+    featured = django_filters.BooleanFilter(field_name="featured")
+
+    class Meta:
+        model = Product
+        fields = ["category", "condition", "car_make", "car_model", "car_year", "featured"]
+
+    def filter_car_year(self, queryset, name, value):
+        try:
+            target_year = int(value)
+        except (TypeError, ValueError):
+            return queryset.none()
+
+        matching_ids = []
+        for product_id, car_year in queryset.values_list("id", "car_year"):
+            year_text = (car_year or "").strip().lower()
+            if not year_text:
+                continue
+            if year_text in {"all years", "all"}:
+                matching_ids.append(product_id)
+                continue
+
+            years = [int(year) for year in re.findall(r"\d{4}", year_text)]
+            if len(years) >= 2 and min(years) <= target_year <= max(years):
+                matching_ids.append(product_id)
+            elif target_year in years:
+                matching_ids.append(product_id)
+
+        return queryset.filter(id__in=matching_ids)
 
 
 # ---------------------------------------------------------------------------
@@ -417,7 +455,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     """Full CRUD for products. Sellers can create/update their own listings."""
     queryset = Product.objects.select_related("category", "seller").prefetch_related("images", "reviews")
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["category__slug", "condition", "car_make", "car_model", "featured"]
+    filterset_class = ProductFilter
     search_fields = ["title", "description", "car_make", "car_model"]
     ordering_fields = ["price", "created_at"]
 
