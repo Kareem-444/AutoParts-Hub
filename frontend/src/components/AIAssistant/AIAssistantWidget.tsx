@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
+import { aria, type AriaMessage } from "@/lib/api";
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Types
@@ -70,23 +71,10 @@ BEHAVIOR RULES:
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   Markdown-like text formatting
+   Safe text rendering
    ────────────────────────────────────────────────────────────────────────────── */
-function formatMarkdown(text: string): React.ReactNode {
-  // Convert **bold**, *italic*, bullet lists, and newlines
-  let html = text;
-  // Bold
-  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  // Italic (single * not preceded/followed by space for safe matching)
-  html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
-  // Bullet points: lines starting with - or •
-  html = html.replace(
-    /^[\-•]\s+(.+)$/gm,
-    '<div style="display:flex;gap:6px;align-items:baseline"><span style="color:var(--aria-accent-light)">•</span><span>$1</span></div>'
-  );
-  // Newlines
-  html = html.replace(/\n/g, "<br />");
-  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+function renderSafeText(text: string): React.ReactNode {
+  return <span style={{ whiteSpace: "pre-wrap" }}>{text}</span>;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -209,8 +197,7 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
     setIsLoading(true);
 
     try {
-      // Build conversation history (OpenAI-compatible format for Groq)
-      const chatMessages = [
+      const chatMessages: AriaMessage[] = [
         { role: "system" as const, content: buildSystemPrompt(pathname) },
         ...[...messages, userMsg]
           .filter((m) => m.role === "user" || m.role === "assistant")
@@ -220,89 +207,26 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
           })),
       ];
 
-      const groqApiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY || "";
+      const data = await aria.sendMessage(trimmed, chatMessages);
 
-      if (!groqApiKey) {
-        throw new Error(
-          "GROQ_API_KEY is not configured. Set NEXT_PUBLIC_GROQ_API_KEY in Vercel env vars."
-        );
+      const assistantMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: data.response || "I couldn't generate a response.",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, assistantMsg]);
+
+      if (!isOpen || isMinimized) {
+        setUnreadCount((c) => c + 1);
       }
-
-      const requestUrl = "https://api.groq.com/openai/v1/chat/completions";
-      const requestBody = JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: chatMessages,
-        max_tokens: 500,
-        temperature: 0.7,
-      });
-
-      // Retry with exponential backoff for 429 rate-limit errors
-      const MAX_RETRIES = 3;
-      let lastError: Error | null = null;
-      let wasRateLimited = false;
-
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-          const response = await fetch(requestUrl, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${groqApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: requestBody,
-          });
-
-          if (response.status === 429) {
-            wasRateLimited = true;
-            const backoffMs = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
-            console.warn(`Aria: rate-limited (429), retrying in ${backoffMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
-            await new Promise((resolve) => setTimeout(resolve, backoffMs));
-            continue;
-          }
-
-          if (!response.ok) {
-            if (response.status === 401) {
-              throw new Error(
-                "GROQ_API_KEY is invalid (401). Please update NEXT_PUBLIC_GROQ_API_KEY in Vercel env vars."
-              );
-            }
-            throw new Error(`API ${response.status}`);
-          }
-
-          const data = await response.json();
-          const assistantContent =
-            data.choices?.[0]?.message?.content ??
-            "I couldn't generate a response.";
-
-          const assistantMsg: Message = {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content: assistantContent,
-            timestamp: new Date(),
-          };
-
-          setMessages((prev) => [...prev, assistantMsg]);
-
-          // Increment unread if panel is closed
-          if (!isOpen || isMinimized) {
-            setUnreadCount((c) => c + 1);
-          }
-          return; // Success — exit early
-        } catch (innerErr) {
-          lastError = innerErr instanceof Error ? innerErr : new Error(String(innerErr));
-          // Only retry on 429 (handled via continue above); all other errors break immediately
-          if (!wasRateLimited) break;
-        }
-      }
-
-      // All retries exhausted or non-retryable error
-      throw lastError ?? new Error("Request failed");
     } catch (err) {
       console.error("Aria chat error:", err);
 
       const errMsg = err instanceof Error ? err.message : String(err);
       const isRateLimit = /429|rate/i.test(errMsg);
-      const isAuthError = /401|invalid|not configured|GROQ_API_KEY/i.test(errMsg);
+      const isAuthError = /401|unauthorized|not configured/i.test(errMsg);
 
       const errorMsg: Message = {
         id: crypto.randomUUID(),
@@ -849,7 +773,7 @@ export default function AIAssistantWidget({ locale }: AIAssistantWidgetProps) {
                             : `1px solid ${msg.isError ? "rgba(239,68,68,0.4)" : "var(--aria-border)"}`,
                         }}
                       >
-                        {formatMarkdown(msg.content)}
+                        {renderSafeText(msg.content)}
 
                         {/* Timestamp on hover */}
                         <span

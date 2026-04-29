@@ -121,6 +121,7 @@ This section lists **every source file** in the project and its primary purpose.
 
 ### d. Aria AI Assistant
 - **Engine**: Groq Cloud (Llama 3.3 70B).
+- **Security**: Requests go through authenticated backend endpoint `/api/aria/`; the Groq key stays server-side.
 - **Personality**: Defined by a comprehensive system prompt that includes platform features, return policies, and context-aware page data.
 - **History**: Persisted in `sessionStorage` per visitor session.
 
@@ -145,6 +146,7 @@ This section lists **every source file** in the project and its primary purpose.
 | `GET` | `/cart/` | JWT | Get current user's cart items. |
 | `POST` | `/cart/add_item/` | JWT | Add/Increment item in cart. |
 | `POST` | `/orders/` | JWT | Convert current cart to an Order. |
+| `POST` | `/aria/` | JWT | Proxy Aria assistant requests to Groq server-side. |
 | `GET` | `/chat/conversations/` | JWT | List available chat threads. |
 | `GET` | `/chat/conversations/<id>/messages/` | JWT | Get past messages for a thread. |
 
@@ -187,12 +189,12 @@ This section lists **every source file** in the project and its primary purpose.
 - `CLOUDINARY_CLOUD_NAME`: Image hosting account name.
 - `CLOUDINARY_API_KEY`: Image hosting key.
 - `CLOUDINARY_API_SECRET`: Image hosting secret.
+- `GROQ_API_KEY`: Server-side Aria assistant key.
 
 ### Frontend (`.env.local`)
 - `NEXT_PUBLIC_API_URL`: Path to Django API.
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: Public OAuth client ID.
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`: Public image account name.
-- `NEXT_PUBLIC_GROQ_API_KEY`: Key for Aria Assistant.
 
 ---
 

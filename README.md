@@ -80,6 +80,7 @@ CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
 GOOGLE_CLIENT_ID=your-google-id
 GOOGLE_CLIENT_SECRET=your-google-secret
+GROQ_API_KEY=your-groq-key
 ```
 
 ### Frontend (`frontend/.env.local`)
@@ -87,7 +88,6 @@ GOOGLE_CLIENT_SECRET=your-google-secret
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-id
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
-NEXT_PUBLIC_GROQ_API_KEY=your-groq-key (Aria Assistant)
 ```
 
 ---

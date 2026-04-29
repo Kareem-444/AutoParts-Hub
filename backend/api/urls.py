@@ -32,6 +32,7 @@ router.register(r"chat/conversations", views.ConversationViewSet, basename="chat
 
 urlpatterns = [
     path("health/", views.health_check, name="health_check"),
+    path("aria/", views.AriaProxyView.as_view(), name="aria"),
     path("", include(router.urls)),
     # Nested reviews under a product: /api/products/<product_pk>/reviews/
     path(

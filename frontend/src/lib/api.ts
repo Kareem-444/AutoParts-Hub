@@ -275,6 +275,23 @@ export const admin = {
   updateOrder: (id: number, data: Partial<Order>) => apiClient<Order>(`/admin/orders/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 
+// Aria AI Assistant
+export type AriaMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+export const aria = {
+  sendMessage: (message: string, conversationHistory: AriaMessage[]) =>
+    apiClient<{ response: string }>("/aria/", {
+      method: "POST",
+      body: JSON.stringify({
+        message,
+        conversation_history: conversationHistory,
+      }),
+    }),
+};
+
 // Chat
 export const chat = {
   getConversations: () => apiClient<any[]>("/chat/conversations/"),

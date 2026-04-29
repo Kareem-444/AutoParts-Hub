@@ -41,6 +41,7 @@ Follow these steps to deploy **AutoParts Hub** to production using **Railway** (
 | `CLOUDINARY_API_SECRET` | Cloudinary API Secret | From Cloudinary Dashboard |
 | `GOOGLE_CLIENT_ID` | Google OAuth ID | From Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Secret | From Google Cloud Console |
+| `GROQ_API_KEY` | Groq AI Key | From console.groq.com |
 | `PORT` | Networking port | `8000` |
 
 ### 🛠️ Run Migrations
@@ -65,7 +66,6 @@ After the first successful deployment:
 | `NEXT_PUBLIC_API_URL` | Your Railway Backend URL | `https://your-backend.railway.app` |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth ID | (Same as backend) |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary name | (Same as backend) |
-| `NEXT_PUBLIC_GROQ_API_KEY` | Groq AI Key | From console.groq.com |
 
 6.  Click **"Deploy"**.
 

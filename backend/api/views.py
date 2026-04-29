@@ -2,8 +2,13 @@ from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
 from django.core.signing import dumps, loads, BadSignature
 from django.middleware.csrf import get_token
+import json
+import time
+import urllib.error
+import urllib.request
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -32,6 +37,95 @@ User = get_user_model()
 def health_check(request):
     """Simple health check endpoint for deployment platforms."""
     return JsonResponse({"status": "ok"}, status=200)
+
+
+class AriaProxyView(APIView):
+    """Authenticated server-side proxy for Aria's Groq chat completion calls."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        api_key = settings.GROQ_API_KEY
+        if not api_key:
+            return Response(
+                {"error": "AI assistant is not configured"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        message = request.data.get("message", "")
+        conversation_history = request.data.get("conversation_history", [])
+
+        if not isinstance(message, str) or not message.strip():
+            return Response(
+                {"error": "message is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(conversation_history, list):
+            return Response(
+                {"error": "conversation_history must be a list"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        messages = []
+        for item in conversation_history[-20:]:
+            if not isinstance(item, dict):
+                continue
+            role = item.get("role")
+            content = item.get("content")
+            if role in {"system", "user", "assistant"} and isinstance(content, str):
+                messages.append({"role": role, "content": content[:2000]})
+
+        if not messages or messages[-1].get("role") != "user":
+            messages.append({"role": "user", "content": message.strip()[:2000]})
+
+        payload = json.dumps({
+            "model": "llama-3.3-70b-versatile",
+            "messages": messages,
+            "max_tokens": 500,
+            "temperature": 0.7,
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        last_error = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                    content = (
+                        data.get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", "")
+                    )
+                    return Response({"response": content or "I couldn't generate a response."})
+            except urllib.error.HTTPError as exc:
+                if exc.code == 429 and attempt < 2:
+                    time.sleep(2 ** (attempt + 1))
+                    continue
+                last_error = exc
+                break
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+                last_error = exc
+                break
+
+        status_code = (
+            status.HTTP_429_TOO_MANY_REQUESTS
+            if isinstance(last_error, urllib.error.HTTPError) and last_error.code == 429
+            else status.HTTP_502_BAD_GATEWAY
+        )
+        return Response(
+            {"error": "AI assistant request failed"},
+            status=status_code,
+        )
 
 # Cookie settings for the refresh token
 REFRESH_COOKIE_KEY = "refresh_token"
@@ -640,4 +734,3 @@ class ConversationViewSet(viewsets.ModelViewSet):
         messages = conversation.messages.all()
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
-
