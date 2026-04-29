@@ -10,7 +10,7 @@ import { useModal } from "@/context/ModalContext";
 export default function NewProductPage() {
   const t = useTranslations();
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showModal } = useModal();
 
@@ -38,9 +38,13 @@ export default function NewProductPage() {
       router.push("/auth/login?redirect=/seller/new");
       return;
     }
+    if (!user || user.is_seller !== true) {
+      router.push("/");
+      return;
+    }
 
     setInitLoading(false);
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, router, user]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {

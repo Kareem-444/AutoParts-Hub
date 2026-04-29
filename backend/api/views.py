@@ -133,9 +133,9 @@ class AriaProxyView(APIView):
 # Cookie settings for the refresh token
 REFRESH_COOKIE_KEY = "refresh_token"
 REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
-REFRESH_COOKIE_SECURE = True  # Requires HTTPS (always True for cross-site)
+REFRESH_COOKIE_SECURE = not settings.DEBUG
 REFRESH_COOKIE_HTTPONLY = True
-REFRESH_COOKIE_SAMESITE = "None"
+REFRESH_COOKIE_SAMESITE = "Lax" if settings.DEBUG else "None"
 
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> Response:
@@ -276,6 +276,12 @@ class AuthViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def logout(self, request):
         """Clear the refresh token cookie."""
+        raw_token = request.COOKIES.get(REFRESH_COOKIE_KEY)
+        if raw_token:
+            try:
+                RefreshToken(raw_token).blacklist()
+            except Exception:
+                pass
         response = Response({"detail": "Logged out"})
         return _clear_refresh_cookie(response)
 
@@ -295,6 +301,7 @@ class AuthViewSet(viewsets.ViewSet):
             # Generate a new pair with custom claims
             new_refresh = CustomTokenObtainPairSerializer.get_token(user)
             access = str(new_refresh.access_token)
+            old_refresh.blacklist()
 
             response = Response({"access": access, "user": UserSerializer(user).data})
             return _set_refresh_cookie(response, str(new_refresh))
@@ -349,6 +356,12 @@ class AuthViewSet(viewsets.ViewSet):
                         idinfo = json.loads(response.read().decode())
                 except Exception:
                     raise ValueError("Invalid access token")
+
+            if not idinfo.get("email_verified"):
+                return Response(
+                    {"error": "Google account email is not verified."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             email = idinfo.get("email")
             
@@ -446,6 +459,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """List and retrieve product categories."""
     queryset = Category.objects.filter(parent__isnull=True)  # Top-level only
     serializer_class = CategorySerializer
+    permission_classes = [permissions.AllowAny]
     lookup_field = "slug"
 
 

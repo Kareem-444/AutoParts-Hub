@@ -15,7 +15,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   
   const t = useTranslations();
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showModal } = useModal();
 
@@ -44,6 +44,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     if (authLoading) return;
     if (!isAuthenticated) {
       router.push(`/auth/login?redirect=/seller/edit/${productId}`);
+      return;
+    }
+    if (!user || user.is_seller !== true) {
+      router.push("/");
       return;
     }
 
@@ -79,7 +83,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       }
     }
     fetchData();
-  }, [productId, isAuthenticated, authLoading, router]);
+  }, [productId, isAuthenticated, authLoading, router, user]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
